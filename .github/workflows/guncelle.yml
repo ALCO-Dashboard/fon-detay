@@ -52,6 +52,12 @@ jobs:
           npm install --no-save --no-audit --no-fund xlsx@0.18.5
           node katilim/derle.mjs site
 
+      - name: Bankacılık verilerini yayınla
+        continue-on-error: true
+        env:
+          SITE_PASSWORD: ${{ secrets.SITE_PASSWORD }}
+        run: node bankacilik/derle.mjs site
+
       - name: Sayfayı yayınla
         run: |
           cd site
