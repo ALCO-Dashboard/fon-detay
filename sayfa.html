@@ -21,6 +21,7 @@ header{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:flex-end;justify-co
 .fill{display:flex;flex-direction:column}.fill .ch{flex:1 1 auto;height:auto;min-height:320px}.fill .ch canvas{position:absolute;inset:0}
 .fi{flex:none;display:inline-flex;align-items:center;justify-content:center;width:20px;height:22px;padding:0;border:0;border-radius:5px;background:none;color:var(--mut);cursor:pointer;font-size:11px}.fi.set{background:var(--acc);color:#fff}
 .fc{display:flex;gap:2px;align-items:center}
+.sitenav{display:flex;flex-wrap:wrap;align-items:center;gap:4px;background:var(--fg);border-radius:10px;padding:5px 8px}.sitenav span{color:var(--bg);font-weight:700;letter-spacing:.08em;font-size:12px;margin:0 12px 0 4px;opacity:.85}.sitenav a{color:var(--bg);opacity:.75;text-decoration:none;font-size:13px;font-weight:600;padding:5px 10px;border-radius:6px}.sitenav a:hover{opacity:1}.sitenav a[aria-current=page]{opacity:1;background:color-mix(in srgb,var(--bg) 18%,transparent)}
 h2{font-size:14px;margin:0 0 10px;font-weight:600}
 .sub{color:var(--mut);font-size:13px;margin-top:4px}.sub b{color:var(--fg)}
 .box{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;min-width:0}
@@ -107,6 +108,7 @@ details.note summary{cursor:pointer;font-weight:600;color:var(--acc);list-style-
 </div>
 <div id="app" hidden>
 <div class="wrap" lang="tr">
+<nav class="sitenav" aria-label="Site"><span>ALCO</span><a href="./" aria-current="page">Fon Detay</a><a href="katilim/">Katılım Bülteni</a></nav>
 <header><div><h1>FON DETAY — YATIRIM FONLARI ANALİZİ</h1><div class="sub" id="sub"></div></div><button class="b" id="thm" aria-label="Tema değiştir"></button></header>
 <nav class="tabs" id="tabs" aria-label="Fon türü"><button data-t="YAT" aria-pressed="true">Menkul Kıymet Yatırım Fonları</button><button data-t="EMK" aria-pressed="false">Emeklilik Yatırım Fonları</button><button data-t="BYF" aria-pressed="false">Borsa Yatırım Fonu</button></nav>
 <div class="box row">

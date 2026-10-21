@@ -40,6 +40,18 @@ jobs:
           SITE_PASSWORD: ${{ secrets.SITE_PASSWORD }}
         run: python guncelle.py
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Katılım bültenini derle
+        continue-on-error: true
+        env:
+          SITE_PASSWORD: ${{ secrets.SITE_PASSWORD }}
+        run: |
+          npm install --no-save --no-audit --no-fund xlsx@0.18.5
+          node katilim/derle.mjs site
+
       - name: Sayfayı yayınla
         run: |
           cd site

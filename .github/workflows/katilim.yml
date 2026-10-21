@@ -1,0 +1,47 @@
+name: Katılım bülteni güncelle
+
+# katilim/excel/ klasörüne yeni bülten yüklenince yalnızca Katılım Bülteni sayfasını yeniler.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "katilim/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fon-detay-guncelle
+  cancel-in-progress: false
+
+jobs:
+  katilim:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Yayındaki siteyi al
+        run: git clone --depth 1 -b gh-pages "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" site
+
+      - name: Katılım bültenini derle
+        env:
+          SITE_PASSWORD: ${{ secrets.SITE_PASSWORD }}
+        run: |
+          npm install --no-save --no-audit --no-fund xlsx@0.18.5
+          node katilim/derle.mjs site
+
+      - name: Sayfayı yayınla
+        run: |
+          cd site
+          git config user.name "fon-detay-bot"
+          git config user.email "fon-detay-bot@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && { echo "Değişiklik yok"; exit 0; }
+          git commit -q -m "Katılım bülteni güncellendi"
+          git push origin gh-pages
