@@ -1,7 +1,11 @@
 name: Katılım ve bankacılık sayfalarını güncelle
 
-# katilim/ ya da bankacilik/ klasöründe değişiklik olunca yalnızca bu iki sayfayı yeniler (TEFAS verisini beklemez).
+# Her sabah BDDK haftalık/aylık bülten ve TCMB EVDS verisini çeker; katilim/ ya da bankacilik/
+# klasöründe değişiklik olunca da çalışır. Yalnızca bu iki sayfayı yeniler (TEFAS verisini beklemez).
 on:
+  schedule:
+    - cron: "15 4 * * *"      # her gün 07:15 (Türkiye saati)
+    - cron: "15 13 * * 4,5"   # perşembe ve cuma 16:15: haftalık bülten genelde bu günlerde çıkar
   push:
     branches: [main]
     paths:
@@ -17,28 +21,42 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  katilim:
+  sayfalar:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
 
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
 
+      - name: Gerekli paketleri kur
+        run: |
+          pip install requests cryptography certifi
+          npm install --no-save --no-audit --no-fund xlsx@0.18.5
+
       - name: Yayındaki siteyi al
         run: git clone --depth 1 -b gh-pages "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" site
 
       - name: Katılım bültenini derle
+        continue-on-error: true
         env:
           SITE_PASSWORD: ${{ secrets.SITE_PASSWORD }}
-        run: |
-          npm install --no-save --no-audit --no-fund xlsx@0.18.5
-          node katilim/derle.mjs site
-          node bankacilik/derle.mjs site
+        run: node katilim/derle.mjs site
+
+      - name: BDDK ve EVDS verisini çek
+        env:
+          SITE_PASSWORD: ${{ secrets.SITE_PASSWORD }}
+          EVDS_API_KEY: ${{ secrets.EVDS_API_KEY }}
+        run: python bankacilik/guncelle.py --cek --site site
 
       - name: Sayfayı yayınla
+        if: always()
         run: |
           cd site
           git config user.name "fon-detay-bot"
