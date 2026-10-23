@@ -1056,7 +1056,7 @@ let rw=0; new ResizeObserver(()=>{ const w=$('#chart').clientWidth; if(w&&Math.a
 
 /* ---------- GitHub sitesi: şifreli veri ---------- */
 downloads={ save:async({filename,data})=>{ const u=URL.createObjectURL(new Blob([data],{type:'text/csv;charset=utf-8'})); const a=document.createElement('a'); a.href=u; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),2000); } };
-S.readOnly=true; $('upBtn').hidden=true;
+S.readOnly=true; $('#upBtn').hidden=true;
 renderAll();
 (function(){
   const g=id=>document.getElementById(id); let rawB=null;
