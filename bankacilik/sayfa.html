@@ -1,4 +1,47 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}
+/* para politikası */
+.ppboxes{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px}
+.ppbox{flex:1 1 150px;min-width:0;text-align:left;font:inherit;color:inherit;background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--bc);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:3px;cursor:pointer}
+.ppbox:hover{border-color:var(--bc)}
+.ppbox[aria-pressed="true"]{background:var(--accent-wash);border-color:var(--bc)}
+.ppbox .pl{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2);font-weight:600}
+.ppbox .pv{font-family:var(--mono);font-size:22px;font-weight:600;color:var(--ink);line-height:1.2}
+.ppbox .pv.neg,.pptile b.neg{color:var(--down)}
+.ppbox .ps{font-size:12px;color:var(--ink-2)}
+.ppbox .pd{font-size:11.5px;color:var(--muted);font-family:var(--mono)}
+.ppop{align-self:center;font-size:20px;font-weight:700;color:var(--muted);padding:0 2px}
+.ppsep{width:1px;background:var(--line);margin:0 4px}
+.ppchart .ppch,.ppcalh{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px}
+.ppchart h3,.ppk h3{margin:0;font-size:15px}
+.pptiles{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px}
+.pptile{flex:1 1 180px;min-width:0;border:1px solid var(--line);border-left:3px solid var(--bc,var(--accent));border-radius:10px;padding:8px 12px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;background:var(--surface-2)}
+.pptile .tt{grid-column:1/-1;font-size:12px;color:var(--ink-2);display:flex;align-items:center;gap:6px}
+.pptile .tt i{width:9px;height:9px;border-radius:2px;background:var(--bc,var(--accent));flex:none}
+.pptile b{font-family:var(--mono);font-size:16px;font-weight:600}
+.pptile .tr{font-family:var(--mono);font-size:13px;color:var(--ink-2);align-self:end}
+.ppnote{font-size:12px;color:var(--muted);margin:8px 0 0}
+.ppkgrid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,2fr);gap:14px}
+@media (max-width:900px){.ppkgrid{grid-template-columns:minmax(0,1fr)}}
+.tscroll{overflow-x:auto}
+.pptab{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+.pptab th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:left;padding:7px 10px;border-bottom:2px solid var(--line);white-space:nowrap}
+.pptab td{padding:7px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.pptab .num{text-align:right;font-family:var(--mono)}
+.pptab th:nth-child(2),.pptab td:nth-child(2){text-align:right}
+.pptab td.up{color:var(--up);font-weight:600}.pptab td.down{color:var(--down);font-weight:600}
+.pptab tr.next td{background:var(--accent-wash)}
+.pptab a{color:var(--accent);text-decoration:none}
+.tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.04em;padding:1px 6px;border-radius:4px;background:var(--accent);color:#fff;vertical-align:1px}
+.ppsum{font-size:13px;color:var(--ink-2);margin:8px 0}
+.ppcl{list-style:none;margin:0;padding:0;cursor:pointer}
+.ppcl li{display:grid;grid-template-columns:14px minmax(0,1fr);gap:2px 8px;padding:7px 4px;border-bottom:1px solid var(--line)}
+.ppcl li:last-child{border-bottom:0}
+.ppcl .dot{width:9px;height:9px;border-radius:50%;margin-top:5px;background:var(--axis)}
+.ppcl li.past .dot{background:var(--up)}.ppcl li.today .dot{background:var(--accent)}
+.ppcl .dd{font-size:13px;color:var(--ink)}
+.ppcl .kk{grid-column:2;font-size:12px;font-family:var(--mono);color:var(--ink-2)}
+.ppcl li.future .dd{color:var(--muted)}
+</style></head><body>
 <meta name="robots" content="noindex, nofollow">
 <title>ALCO - Bankacılık Verileri</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -258,6 +301,7 @@ td .sm.up{color:var(--up)} td .sm.down{color:var(--down)}
         <button data-p="faiz" aria-pressed="true">Faiz, Kâr Payı ve Kart</button>
         <button data-p="aylik" aria-pressed="false">Para ve Banka (Aylık)</button>
         <button data-p="haftalik" aria-pressed="false">Para ve Banka (Haftalık)</button>
+        <button data-p="pp" aria-pressed="false">Para Politikası</button>
       </div>
     </div>
     <div class="bar">
@@ -268,6 +312,7 @@ td .sm.up{color:var(--up)} td .sm.down{color:var(--down)}
       <nav class="tnav" id="tNav" aria-label="Konular"></nav>
       <div class="stack" id="tPanels" style="min-width:0"></div>
     </div>
+    <div class="stack hidden" id="ppPane"></div>
   </section>
 
   <div class="foot" id="foot"></div>
@@ -331,7 +376,7 @@ async function decrypt(env, password) {
   const key = await crypto.subtle.deriveKey({ name: "PBKDF2", hash: "SHA-256", salt: b64(env.salt), iterations: env.iter || 250000 }, base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
   return gunzip(await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(env.iv) }, key, b64(env.ct)));
 }
-const FILES = ["bddk_haftalik", "bddk_aylik", "evds"];
+const FILES = ["bddk_haftalik", "bddk_aylik", "evds", "politika"];
 async function fetchJSON(u) { const r = await fetch(u, { cache: "no-cache" }); if (!r.ok) throw new Error(r.status); return r.json(); }
 async function loadAll(password) {
   const out = {};
@@ -493,7 +538,7 @@ function divBars(items, kind) {
 
 // =============================================================== üst bilgi
 function renderMeta() {
-  const src = [D.w && ["BDDK Haftalık Bülten", D.w.raw.updated, "https://www.bddk.org.tr/BultenHaftalik"], D.m && ["BDDK Aylık Bülten", D.m.raw.updated, "https://www.bddk.org.tr/BultenAylik"], D.e && ["TCMB EVDS", D.e.updated, "https://evds3.tcmb.gov.tr"]].filter(Boolean);
+  const src = [D.w && ["BDDK Haftalık Bülten", D.w.raw.updated, "https://www.bddk.org.tr/BultenHaftalik"], D.m && ["BDDK Aylık Bülten", D.m.raw.updated, "https://www.bddk.org.tr/BultenAylik"], D.e && ["TCMB EVDS", D.e.updated, "https://evds3.tcmb.gov.tr"], D.p && ["TCMB Para Politikası", D.p.updated, "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB+TR/Main+Menu/Temel+Faaliyetler/Para+Politikasi/PPK/"]].filter(Boolean);
   $("#foot").innerHTML = "Kaynaklar: " + src.map(([n, t, u]) => `<a href="${u}" target="_blank" rel="noopener">${n}</a> (çekim ${t ? new Date(t).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" }) : "—"})`).join(" · ") + "." + (window.__BANKA_GZ ? "" : ` <button class="more" id="logoutBtn" style="padding:0">Çıkış</button>`);
   if ($("#logoutBtn")) $("#logoutBtn").onclick = () => { store.set("bv.pw", null); try { sessionStorage.removeItem("bv.pw"); } catch {} location.reload(); };
 }
@@ -909,6 +954,7 @@ function drawTChart(code) {
 }
 function renderTcmb() {
   $$("#tSub button").forEach(b => b.setAttribute("aria-pressed", b.dataset.p === S.tSub));
+  if (S.tSub === "pp") { ppRender(); return; } ppHide();
   if (!D.e) { $("#tPanels").innerHTML = '<div class="card empty">EVDS verisi henüz yok.</div>'; $("#tNav").innerHTML = ""; return; }
   const secs = tSections(), sel = tSelTopics();
   $("#tBanks").innerHTML = tBanks().map(b => `<button class="chip" aria-pressed="${b.key === S.tBank}" data-b="${b.key}"><span class="dot" style="background:${gColor(b.key)}"></span>${esc(b.name)}</button>`).join("");
@@ -919,7 +965,9 @@ function renderTcmb() {
   $("#tPanels").innerHTML = sel.length ? sel.map(tPanel).join("") : '<div class="card empty">Soldaki menüden konu işaretleyin.</div>';
   sel.forEach(it => { const [g] = tResolve(it); if (g) drawTChart(g.code); });
 }
+/*PARA_POLITIKASI*/
 function bindTcmb() {
+  bindPp();
   $("#tSub").onclick = e => { const b = e.target.closest("button"); if (!b) return; S.tSub = b.dataset.p; const ks = tBanks().map(x => x.key); if (!ks.includes(S.tBank)) S.tBank = ks.includes(store.get("bv.tbank")) ? store.get("bv.tbank") : (ks.includes("katilim") ? "katilim" : ks[0]); renderTcmb(); };
   $("#tNav").addEventListener("change", e => {
     const b = e.target.closest("input[data-t]"); if (!b) return; const id = b.dataset.t, cur = S.tTopics[S.tSub] || [];
@@ -955,7 +1003,7 @@ $("#tabs").onclick = e => {
 let rz, lastW = innerWidth; addEventListener("resize", () => { if (Math.abs(innerWidth - lastW) < 40) return; lastW = innerWidth; clearTimeout(rz); rz = setTimeout(renderPane, 150); });
 
 function start(raw) {
-  D = { w: modelWeekly(raw.bddk_haftalik), m: modelMonthly(raw.bddk_aylik), e: prepEvds(raw.evds) };
+  D = { w: modelWeekly(raw.bddk_haftalik), m: modelMonthly(raw.bddk_aylik), e: prepEvds(raw.evds), p: raw.politika || null };
   if (!D.w && D.m) S.bFreq = "m";
   if (S.bFreq === "m" && !D.m && D.w) S.bFreq = "w";
   if (!D.w && !D.m && D.e) S.tab = "tcmb";

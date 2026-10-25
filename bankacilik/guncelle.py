@@ -28,7 +28,7 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 KOK = os.path.dirname(os.path.abspath(__file__))
-DOSYALAR = ("bddk_haftalik", "bddk_aylik", "evds")
+DOSYALAR = ("bddk_haftalik", "bddk_aylik", "evds", "politika")
 ITER = 250_000
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36"
 BDDK_H = "https://www.bddk.org.tr/BultenHaftalik"
@@ -295,6 +295,149 @@ def evds(D, anahtar):
         raise RuntimeError("EVDS: hiçbir grup çekilemedi")
 
 
+# ---------------------------------------------------------------- para politikası
+TCMB = "https://www.tcmb.gov.tr"
+PP_GUNLUK = {           # anahtar: EVDS serisi (iş günü)
+    "fon_top": "TP.APIFON1.TOP", "fon_iha": "TP.APIFON1.IHA", "fon_kot": "TP.APIFON1.KOT.T",
+    "fon_bist": "TP.APIFON1.KOT.A", "fon_tldepo": "TP.APIFON1.KOT.B", "fon_glp": "TP.APIFON1.KOT.C",
+    "st_top": "TP.APIFON2.TOP", "st_iha": "TP.APIFON2.IHA", "st_kot": "TP.APIFON2.KOT", "st_lik": "TP.APIFON2.LIK",
+    "net": "TP.APIFON3", "aof": "TP.APIFON4",
+    "usdtry": "TP.DK.USD.A.YTL",
+    # TCMB taraflı swap stokları (milyon USD)
+    "sw_usd_piy": "TP.SWAPTEKTAR.SWAPKSTOKUSDTUTAR", "sw_usd_bist": "TP.SWAPTEKTAR.BISWAPSTOKUSDTUTAR",
+    "sw_usd_al": "TP.SWAPTEKTAR.SWAPPALIMSTOKUSDTUTAR", "sw_usd_sat": "TP.SWAPTEKTAR.SWAPPSATIMSTOKUSDTUTAR",
+    "sw_usd_mik": "TP.SWAPTEKTAR.SWAPMSTOKUSDTUTAR",
+    "sw_xau_piy": "TP.SWAPTEKTAR.SWAPASTOKUSDTUTAR", "sw_xau_al": "TP.SWAPTEKTAR.SWAPXALIMSTOKUSDTUTAR",
+    "sw_xau_sat": "TP.SWAPTEKTAR.SWAPXSATIMSTOKUSDTUTAR",
+    "sw_top_al": "TP.SWAPTEKTAR.TOTALSTOKALIMYONLU", "sw_top_sat": "TP.SWAPTEKTAR.TOTALSTOKSATIMYONLU",
+}
+PP_BASLANGIC = dt.date(2022, 12, 1)
+AYLAR_TR = {k.lower(): v for k, v in AYLAR.items()}
+
+
+def evds_cek(s, kodlar, bas, bit, aylik=False):
+    """{tarih: {kod: değer}}; EVDS 1000 satır sınırı için 1 yıllık pencerelerle."""
+    out = {}
+    while bas <= bit:
+        son = min(bit, bas + dt.timedelta(days=364))
+        for i in range(0, len(kodlar), 20):
+            parca = kodlar[i:i + 20]
+            url = EVDS + f"series={'-'.join(parca)}&startDate={bas:%d-%m-%Y}&endDate={son:%d-%m-%Y}&type=json"
+            r = s.get(url, timeout=120, allow_redirects=False)
+            if r.status_code == 403:
+                raise RuntimeError("EVDS anahtarı reddedildi (EVDS_API_KEY)")
+            r.raise_for_status()
+            for it in r.json().get("items", []):
+                t = it.get("Tarih", "")
+                if aylik:
+                    mm = re.match(r"^(\d{4})-(\d{1,2})$", t)
+                    tarih = f"{mm.group(1)}-{int(mm.group(2)):02d}" if mm else None
+                else:
+                    mm = re.match(r"^(\d{2})-(\d{2})-(\d{4})$", t)
+                    tarih = f"{mm.group(3)}-{mm.group(2)}-{mm.group(1)}" if mm else None
+                if not tarih:
+                    continue
+                for c in parca:
+                    v = it.get(c.replace(".", "_"))
+                    if v not in (None, "", "ND"):
+                        try:
+                            out.setdefault(tarih, {})[c] = float(v)
+                        except (TypeError, ValueError):
+                            pass
+            time.sleep(0.3)
+        bas = son + dt.timedelta(days=1)
+    return out
+
+
+def tcmb_get(s, yol):
+    r = s.get(TCMB + yol, timeout=60)
+    r.raise_for_status()
+    return r.text
+
+
+def hucreler(html):
+    """Basit tablo okuyucu: [[(metin, href), ...], ...]"""
+    satirlar = []
+    for tr in re.findall(r"<tr[^>]*>([\s\S]*?)</tr>", html, re.I):
+        hs = []
+        for td in re.findall(r"<t[dh][^>]*>([\s\S]*?)</t[dh]>", tr, re.I):
+            href = re.search(r'href="([^"]+)"', td)
+            metin = re.sub(r"<[^>]+>", " ", td)
+            metin = re.sub(r"\s+", " ", metin.replace("&nbsp;", " ")).strip()
+            hs.append((metin, href.group(1) if href else None))
+        if hs:
+            satirlar.append(hs)
+    return satirlar
+
+
+def tr_tarih(metin):
+    m = re.search(r"(\d{1,2})\s+([A-Za-zÇĞİÖŞÜçğıöşü]+)\s+(\d{4})", metin)
+    if not m or m.group(2).lower() not in AYLAR_TR:
+        return None
+    return f"{m.group(3)}-{AYLAR_TR[m.group(2).lower()]:02d}-{int(m.group(1)):02d}"
+
+
+def politika(P, anahtar):
+    s = requests.Session()
+    s.headers.update({"key": anahtar, "User-Agent": UA})
+    bugun = dt.date.today()
+    # 1) günlük EVDS serileri: ilk çalışmada 2022 sonundan, sonra son 90 gün
+    g = P.setdefault("daily", {"dates": [], "series": {}})
+    bas = PP_BASLANGIC if not g["dates"] else dt.date.fromisoformat(g["dates"][-1]) - dt.timedelta(days=90)
+    yeni = evds_cek(s, list(PP_GUNLUK.values()), bas, bugun)
+    if not yeni and not g["dates"]:
+        raise RuntimeError("para politikası serileri boş geldi")
+    eski = {k: dict(zip(g["dates"], g["series"].get(k, []))) for k in PP_GUNLUK}
+    for t, vs in yeni.items():
+        for k, kod in PP_GUNLUK.items():
+            if kod in vs:
+                eski[k][t] = vs[kod]
+    tarihler = sorted(set(g["dates"]) | {t for t, vs in yeni.items() if PP_GUNLUK["fon_top"] in vs or PP_GUNLUK["st_top"] in vs})
+    g["dates"] = tarihler
+    g["series"] = {k: [eski[k].get(t) for t in tarihler] for k in PP_GUNLUK}
+    log(f"   para politikası: {len(tarihler)} gün, son {tarihler[-1] if tarihler else '-'}")
+    # 2) TÜFE endeksi (aylık, yıllık değişim için)
+    tf = evds_cek(s, ["TP.FG.J0"], dt.date(2021, 1, 1), bugun, aylik=True)
+    if tf:
+        P["tufe"] = {t: v["TP.FG.J0"] for t, v in sorted(tf.items()) if "TP.FG.J0" in v}
+    # 3) politika faizi (1 hafta repo) ve PPK takvimi: TCMB sitesi
+    w = requests.Session()
+    w.headers.update({"User-Agent": UA})
+    try:
+        h = tcmb_get(w, "/wps/wcm/connect/TR/TCMB+TR/Main+Menu/Temel+Faaliyetler/Para+Politikasi/Merkez+Bankasi+Faiz+Oranlari/1+Hafta+Repo")
+        faiz = []
+        for row in hucreler(h):
+            m = re.match(r"^(\d{2})\.(\d{2})\.(\d{4})$", row[0][0]) if row else None
+            if m and len(row) >= 3:
+                try:
+                    faiz.append({"tarih": f"{m.group(3)}-{m.group(2)}-{m.group(1)}", "oran": float(row[2][0].replace(",", "."))})
+                except ValueError:
+                    pass
+        if len(faiz) > 10:
+            P["faiz"] = faiz
+            log(f"   politika faizi: {len(faiz)} değişiklik, son {faiz[-1]}")
+    except Exception as e:
+        log(f"   politika faizi okunamadı: {type(e).__name__}: {e}")
+    ppk = P.setdefault("ppk", {})
+    for yil in range(2023, bugun.year + 2):
+        try:
+            h = tcmb_get(w, f"/wps/wcm/connect/TR/TCMB+TR/Main+Menu/Temel+Faaliyetler/Para+Politikasi/PPK/{yil}")
+        except Exception as e:
+            log(f"   PPK {yil}: {type(e).__name__}")
+            continue
+        top = []
+        for row in hucreler(h):
+            t = tr_tarih(row[0][0]) if row else None
+            if not t or not t.startswith(str(yil)):
+                continue
+            top.append({"tarih": t, "ara": "*" in row[0][0], "url": (TCMB + row[0][1]) if row[0][1] and row[0][1].startswith("/") else row[0][1],
+                        "ozet": tr_tarih(row[1][0]) if len(row) > 1 else None})
+        if top:
+            ppk[str(yil)] = top
+    log(f"   PPK takvimi: {', '.join(f'{y}:{len(v)}' for y, v in sorted(ppk.items()))}")
+    P["updated"] = simdi()
+
+
 # ---------------------------------------------------------------- sayfa
 MENU = ('<nav aria-label="Site" style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;background:#1a1d26;'
         'padding:6px max(16px,env(safe-area-inset-left,0px));font:600 13px \'DM Sans\',system-ui,sans-serif">'
@@ -331,14 +474,15 @@ def main():
                 log(f"Önceki {f} açılamadı ({type(e).__name__}); başlangıç verisi kullanılıyor.")
             if tohum is None:
                 tohum = json.loads(gzip.decompress(open(os.path.join(KOK, "baslangic.json.gz"), "rb").read()))
-            D[f] = tohum[f]
+            D[f] = tohum.get(f, {})
 
     sorun = []
     if a.cek:
         for ad, fn in (("bddk_haftalik", lambda: bddk_haftalik(D["bddk_haftalik"])),
                        ("bddk_aylik", lambda: bddk_aylik(D["bddk_aylik"])),
-                       ("evds", lambda: evds(D["evds"], os.environ.get("EVDS_API_KEY", "")))):
-            if ad == "evds" and not os.environ.get("EVDS_API_KEY"):
+                       ("evds", lambda: evds(D["evds"], os.environ.get("EVDS_API_KEY", ""))),
+                       ("politika", lambda: politika(D["politika"], os.environ.get("EVDS_API_KEY", "")))):
+            if ad in ("evds", "politika") and not os.environ.get("EVDS_API_KEY"):
                 log("EVDS: EVDS_API_KEY tanımlı değil, atlandı.")
                 sorun.append(ad)
                 continue
@@ -352,12 +496,13 @@ def main():
     for f in DOSYALAR:
         json.dump(sifrele(D[f], sifre), open(os.path.join(veri_dizin, f + ".enc.json"), "w"))
     html = open(os.path.join(KOK, "sayfa.html"), encoding="utf-8").read()
+    html = html.replace("/*PARA_POLITIKASI*/", open(os.path.join(KOK, "para_politikasi.js"), encoding="utf-8").read(), 1)
     html = html.replace("<body>", "<body>" + MENU, 1) if "<body>" in html else MENU + html
     open(os.path.join(cikti, "index.html"), "w", encoding="utf-8").write(html)
     h = D["bddk_haftalik"]
     log(f"TAMAM — haftalık son {max(h['weeks'].values())}, aylık son {max(D['bddk_aylik']['values'])}"
         + (f"; sorunlu: {', '.join(sorun)}" if sorun else ""))
-    return 1 if a.cek and len(sorun) == 3 else 0
+    return 1 if a.cek and len(sorun) == len(DOSYALAR) else 0
 
 
 if __name__ == "__main__":
