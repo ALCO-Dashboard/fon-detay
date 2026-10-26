@@ -98,4 +98,12 @@ const sifreli = Buffer.concat([c.update(ham), c.final(), c.getAuthTag()]);
 fs.mkdirSync(CIKTI, { recursive: true });
 fs.writeFileSync(path.join(CIKTI, "data.enc"), Buffer.concat([Buffer.from("FD1"), tuz, nonce, sifreli]));
 fs.writeFileSync(path.join(CIKTI, "index.html"), fs.readFileSync(path.join(KOK, "sayfa.html")));
+// üst başlıktaki "güncel" göstergesi için son bülten tarihi
+try {
+  const dy = path.join(path.dirname(CIKTI), "durum.json");
+  let d = {}; try { d = JSON.parse(fs.readFileSync(dy, "utf8")); } catch (e) {}
+  const son = Object.keys(S.reports).sort().pop();
+  if (son) d.katilim = { son_veri: son, guncelleme: new Date().toISOString() };
+  fs.writeFileSync(dy, JSON.stringify(d, null, 1));
+} catch (e) { console.error("durum.json yazılamadı: " + e.message); }
 console.log(`TAMAM — ${Object.keys(S.reports).length} bülten, ${Object.keys(S.snaps).length} tarih → ${CIKTI}`);

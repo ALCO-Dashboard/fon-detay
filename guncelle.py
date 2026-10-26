@@ -554,6 +554,12 @@ def main():
     open(os.path.join(SITE, "data.enc"), "wb").write(sifrele(veri, sifre))
     open(os.path.join(SITE, "index.html"), "w", encoding="utf-8").write(open("sayfa.html", encoding="utf-8").read())
     open(os.path.join(SITE, ".nojekyll"), "w").write("")
+    try:                                                             # üst başlıktaki "güncel" göstergesi
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "ortak"))
+        from durum import yaz
+        yaz(SITE, "tefas", veri["dates"][-1])
+    except Exception as e:
+        log(f"durum.json yazılamadı: {e}")
     log(f"TAMAM — son veri tarihi {veri['dates'][-1]}, güncelleme {veri['updated']}")
     return 0
 

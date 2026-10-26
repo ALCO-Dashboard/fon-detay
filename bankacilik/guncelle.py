@@ -439,12 +439,7 @@ def politika(P, anahtar):
 
 
 # ---------------------------------------------------------------- sayfa
-MENU = ('<nav aria-label="Site" style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;background:#1a1d26;'
-        'padding:6px max(16px,env(safe-area-inset-left,0px));font:600 13px \'DM Sans\',system-ui,sans-serif">'
-        '<span style="color:#fff;opacity:.85;font-weight:700;letter-spacing:.08em;font-size:12px;margin-right:12px">ALCO</span>'
-        '<a href="../" style="color:#fff;opacity:.75;text-decoration:none;padding:5px 10px;border-radius:6px">Fon Detay</a>'
-        '<a href="../katilim/" style="color:#fff;opacity:.75;text-decoration:none;padding:5px 10px;border-radius:6px">Katılım Bülteni</a>'
-        '<a href="./" aria-current="page" style="color:#fff;text-decoration:none;padding:5px 10px;border-radius:6px;background:rgba(255,255,255,.18)">Bankacılık Verileri</a></nav>'
+MENU = ('<div id="alcoTop"></div><script src="../ortak/ust.js" data-page="banka" data-root="../"></script>'
         # aynı şifre: Fon Detay'da hatırlanan şifre bu sayfada da kullanılır
         '<script>try{if(!localStorage.getItem("bv.pw")){var p=localStorage.getItem("fd-pw");if(p)localStorage.setItem("bv.pw",p)}}catch(e){}</script>')
 
@@ -499,6 +494,25 @@ def main():
     html = html.replace("/*PARA_POLITIKASI*/", open(os.path.join(KOK, "para_politikasi.js"), encoding="utf-8").read(), 1)
     html = html.replace("<body>", "<body>" + MENU, 1) if "<body>" in html else MENU + html
     open(os.path.join(cikti, "index.html"), "w", encoding="utf-8").write(html)
+    try:                                                             # üst başlıktaki "güncel" göstergesi
+        sys.path.insert(0, os.path.join(os.path.dirname(KOK), "ortak"))
+        from durum import yaz
+        h_ = D["bddk_haftalik"]
+        if h_.get("weeks"):
+            yaz(a.site, "bddk_haftalik", max(h_["weeks"].values()))
+        if D["bddk_aylik"].get("values"):
+            yaz(a.site, "bddk_aylik", max(D["bddk_aylik"]["values"]))
+        ed = [g["dates"][-1] for g in (D["evds"].get("groups") or {}).values() if g.get("dates") and len(g["dates"][-1]) == 10]
+        if ed:
+            yaz(a.site, "evds", max(ed))
+        P = D.get("politika") or {}
+        if P.get("daily", {}).get("dates"):
+            yaz(a.site, "politika", P["daily"]["dates"][-1])
+        bugun = dt.date.today().isoformat()
+        sonraki = sorted(x["tarih"] for v in (P.get("ppk") or {}).values() for x in v if x["tarih"] >= bugun)
+        yaz(a.site, "", None, ppk_sonraki=sonraki[0] if sonraki else None)
+    except Exception as e:
+        log(f"durum.json yazılamadı: {e}")
     h = D["bddk_haftalik"]
     log(f"TAMAM — haftalık son {max(h['weeks'].values())}, aylık son {max(D['bddk_aylik']['values'])}"
         + (f"; sorunlu: {', '.join(sorun)}" if sorun else ""))
