@@ -377,7 +377,7 @@ img{max-width:100%}
 </head>
 <body>
 <div id="alcoTop"></div><script src="../ortak/ust.js" data-page="katilim" data-root="../"></script>
-<div id="lock"><form id="lf"><h1>KATILIM BANKALARI BÜLTENİ</h1><p>Bu sayfa şifreyle korunuyor. Fon Detay ile aynı şifre.</p><input type="password" id="pw" placeholder="Şifre" autocomplete="current-password" aria-label="Şifre" required><label><input type="checkbox" id="rem"> Bu cihazda hatırla</label><button id="lb" type="submit">Giriş</button><div id="lerr" role="alert"></div></form></div>
+<div id="lock"><form id="lf"><h1>KATILIM BANKALARI BÜLTENİ</h1><p id="lerr" role="status">Veriler yükleniyor…</p></form></div>
 <div id="app" hidden>
 <header class="top">
   <div class="wrap hd">
@@ -1059,20 +1059,11 @@ downloads={ save:async({filename,data})=>{ const u=URL.createObjectURL(new Blob(
 S.readOnly=true; $('#upBtn').hidden=true;
 renderAll();
 (function(){
-  const g=id=>document.getElementById(id); let rawB=null;
-  const load=()=>rawB?Promise.resolve(rawB):fetch('data.enc?t='+Date.now(),{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('veri');return r.arrayBuffer()}).then(b=>rawB=new Uint8Array(b));
-  async function open(pw){ const b=await load(); if(String.fromCharCode(b[0],b[1],b[2])!='FD1') throw new Error('veri');
-    const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
-    const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:b.slice(3,19),iterations:200000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['decrypt']);
-    let plain; try{ plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:b.slice(19,31)},key,b.slice(31)); }catch(e){ throw new Error('sifre'); }
-    const txt=await new Response(new Blob([plain]).stream().pipeThrough(new DecompressionStream('gzip'))).text(); return JSON.parse(txt); }
-  async function go(pw,auto){ g('lb').disabled=true; g('lerr').textContent=''; g('lb').textContent='Açılıyor…';
-    try{ const D=await open(pw); if(g('rem').checked||auto){ try{localStorage.setItem('fd-pw',pw)}catch(e){} }
-      S.snaps=D.snaps||{}; S.reports=D.reports||{}; S.fx=D.fx||{}; S.catalog=(D.catalog||[]).slice().sort((a,b)=>a.order-b.order); live=true;
-      g('lock').hidden=true; g('app').hidden=false; renderAll(); }
-    catch(e){ if(auto){ try{localStorage.removeItem('fd-pw')}catch(x){} } g('lerr').textContent=e.message=='sifre'?'Şifre yanlış.':e.message=='veri'?'Veri dosyası okunamadı. Sayfa henüz güncellenmemiş olabilir.':'Sayfa açılamadı: '+e.message; g('lb').disabled=false; g('lb').textContent='Giriş'; } }
-  g('lf').addEventListener('submit',e=>{ e.preventDefault(); go(g('pw').value,false); });
-  let s=null; try{ s=localStorage.getItem('fd-pw'); }catch(e){} if(s){ g('rem').checked=true; go(s,true); }
+  const g=id=>document.getElementById(id);
+  fetch('data.json?t='+Date.now(),{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('veri');return r.json()})
+    .then(D=>{ S.snaps=D.snaps||{}; S.reports=D.reports||{}; S.fx=D.fx||{}; S.catalog=(D.catalog||[]).slice().sort((a,b)=>a.order-b.order); live=true;
+      g('lock').hidden=true; g('app').hidden=false; renderAll(); })
+    .catch(e=>{ g('lerr').textContent=e.message=='veri'?'Veri dosyası okunamadı. Sayfa henüz güncellenmemiş olabilir.':'Sayfa açılamadı: '+e.message; });
 })();
 function offline(){}
 

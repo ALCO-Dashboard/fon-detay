@@ -551,8 +551,11 @@ def main():
     if not veri["dates"]:
         raise RuntimeError("Sayfa verisi boş")
     open(yol, "wb").write(sifrele(depo, sifre))
-    open(os.path.join(SITE, "data.enc"), "wb").write(sifrele(veri, sifre))
-    open(os.path.join(SITE, "index.html"), "w", encoding="utf-8").write(open("sayfa.html", encoding="utf-8").read())
+    # sayfa verisi şifresiz yayımlanır (site herkese açık); store.enc yalnızca iş akışının iç deposu
+    json.dump(veri, open(os.path.join(SITE, "data.json"), "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
+    if os.path.exists(os.path.join(SITE, "data.enc")):
+        os.remove(os.path.join(SITE, "data.enc"))
+    open(os.path.join(SITE, "tefas.html"), "w", encoding="utf-8").write(open("sayfa.html", encoding="utf-8").read())
     open(os.path.join(SITE, ".nojekyll"), "w").write("")
     try:                                                             # üst başlıktaki "güncel" göstergesi
         sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "ortak"))

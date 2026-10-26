@@ -1,21 +1,40 @@
 // Ortak üst başlık: DOST KATILIM - PİYASA VERİLERİ (ALCO)
 // Kullanım: <div id="alcoTop"></div><script src="<kök>/ortak/ust.js" data-page="banka|katilim|tefas" data-root="<kök>/"></script>
+// Kök index.html (kabuk.html) data-shell="1" ile çağırır: sekmeler iframe olarak açılır, sayfa yeniden yüklenmez.
+// Kabuk içinde açılan sayfalarda başlık çizilmez; tema kabuktan window.alcoTema ile gelir.
 // Tarih, PPK geri sayımı, koyu/açık tema ve veri güncelliği (durum.json) gösterir.
 (function () {
   const me = document.currentScript, PAGE = me.dataset.page || "", ROOT = me.dataset.root || "./";
   const host = document.getElementById("alcoTop"); if (!host) return;
+  const SHELL = me.dataset.shell === "1";
+  let EMBED = false; try { EMBED = !SHELL && window.parent !== window && !!window.parent.document.getElementById("alcoFrames"); } catch (e) {}
   const AY = ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"];
   const get = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
   const set = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
   const root = document.documentElement;
   const saved = get("alco-theme") || get("fd-theme") || get("bv.theme"); if (saved) root.dataset.theme = saved;
   const isDark = () => root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  // sayfanın temasını t'ye getir (TEFAS kendi düğmesiyle grafikleri de yeniden çizer)
+  window.alcoTema = t => {
+    if ((t === "dark") !== isDark()) { const thm = document.getElementById("thm"); if (PAGE === "tefas" && thm) thm.click(); }
+    root.dataset.theme = t; set("alco-theme", t); set("fd-theme", t); set("bv.theme", t);
+    window.dispatchEvent(new Event("resize"));
+  };
+  if (EMBED) {
+    host.remove();
+    document.head.appendChild(Object.assign(document.createElement("style"), { textContent: "#thm{display:none!important}" }));
+    return;
+  }
 
   const css = `
 .alco-top{--at-bg:#fff;--at-ink:#1c1416;--at-mut:#7a6a6c;--at-line:#eadfe0;--at-red:#c8102e;--at-dark:#8b0f1a;--at-wash:#fdecee;--at-ok:#1f8a4c;--at-warn:#c77700;
   background:var(--at-bg);border-bottom:1px solid var(--at-line);font-family:"DM Sans","Albert Sans",system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--at-ink);position:relative;z-index:20}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .alco-top{--at-bg:#171012;--at-ink:#f3e9ea;--at-mut:#b49ea1;--at-line:#3a2a2d;--at-red:#f0525f;--at-dark:#ff8a94;--at-wash:#3a171b;--at-ok:#4cc27a;--at-warn:#f0a84a}}
 :root[data-theme="dark"] .alco-top{--at-bg:#171012;--at-ink:#f3e9ea;--at-mut:#b49ea1;--at-line:#3a2a2d;--at-red:#f0525f;--at-dark:#ff8a94;--at-wash:#3a171b;--at-ok:#4cc27a;--at-warn:#f0a84a}
+.alco-top{display:block!important;padding:0!important;justify-content:initial;align-items:initial;text-align:left}
+.alco-top nav.at-tabs{background:none!important;border-radius:0!important;padding:0!important;flex-wrap:nowrap!important;align-items:stretch!important}
+.alco-top nav.at-tabs a{opacity:1!important;border-radius:0!important}
+.alco-top h1,.alco-top small{font-family:inherit}
 .alco-top .at-in{max-width:1500px;margin:0 auto;padding:12px max(16px,env(safe-area-inset-left,0px)) 0 max(16px,env(safe-area-inset-left,0px))}
 .alco-top .at-r1{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;padding-bottom:10px}
 .alco-top .at-brand{margin-right:auto;min-width:0}
@@ -38,15 +57,16 @@
 .alco-top .at-pop span:last-child{font-family:"JetBrains Mono",ui-monospace,monospace;color:var(--at-mut);font-size:11.5px}
 .alco-top nav.at-tabs{display:flex;gap:4px;overflow-x:auto}
 .alco-top nav.at-tabs a{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--at-mut);font-size:14px;font-weight:600;padding:10px 16px 11px;border-bottom:3px solid transparent;white-space:nowrap}
-.alco-top nav.at-tabs a:hover{color:var(--at-ink)}
+.alco-top nav.at-tabs a:hover{color:var(--at-ink);background:none}
 .alco-top nav.at-tabs a[aria-current="page"]{color:var(--at-red);border-bottom-color:var(--at-red)}
 .alco-top nav.at-tabs a .b{font-size:10.5px;min-width:18px;height:18px;border-radius:9px;background:var(--at-ok);color:#fff;display:inline-flex;align-items:center;justify-content:center;padding:0 5px}
 .alco-top nav.at-tabs a .b.w{background:var(--at-warn)}
+.alco-top nav.at-tabs a .b[hidden]{display:none}
 @media (max-width:640px){.alco-top .at-brand b{font-size:16px}.alco-top .at-date{padding:4px 10px}}
 ${PAGE === "tefas" ? "#thm{display:none!important}" : ""}`;
   document.head.appendChild(Object.assign(document.createElement("style"), { textContent: css }));
 
-  const TABS = [["banka", "Bankacılık Verileri", "bankacilik/"], ["katilim", "Katılım Bülteni", "katilim/"], ["tefas", "TEFAS Verileri", ""]];
+  const TABS = [["banka", "Bankacılık Verileri", "bankacilik/", "bankacilik/"], ["katilim", "Katılım Bülteni", "katilim/", "katilim/"], ["tefas", "TEFAS Verileri", "", "tefas.html"]];
   const SRC = [ // anahtar, ad, sekme, kaç gün içinde "güncel"
     ["bddk_haftalik", "BDDK Haftalık Bülten", "banka", 14], ["bddk_aylik", "BDDK Aylık Bülten", "banka", 75],
     ["evds", "TCMB EVDS", "banka", 7], ["politika", "Para Politikası (TCMB)", "banka", 5],
@@ -60,19 +80,36 @@ ${PAGE === "tefas" ? "#thm{display:none!important}" : ""}`;
     <div class="at-date"><b>${fmt(now)}</b><small id="atPpk">&nbsp;</small></div>
     <button type="button" class="at-btn" id="atTheme"></button>
     <div class="at-fr" id="atFr"><button type="button" class="at-btn" id="atFrBtn" aria-expanded="false"><span class="dot"></span>Veri durumu</button></div>
-  </div><nav class="at-tabs" aria-label="Bölümler">${TABS.map(([k, n, p]) => `<a href="${ROOT}${p}" data-k="${k}"${k === PAGE ? ' aria-current="page"' : ""}>${n}<span class="b" hidden></span></a>`).join("")}</nav></div></header>`;
+  </div><nav class="at-tabs" aria-label="Bölümler">${TABS.map(([k, n, p]) => `<a href="${SHELL ? "#" + k : ROOT + "#" + k}" data-k="${k}"${k === PAGE ? ' aria-current="page"' : ""}>${n}<span class="b" hidden></span></a>`).join("")}</nav></div></header>`;
 
   const tb = document.getElementById("atTheme");
   const lab = () => { tb.textContent = isDark() ? "☀ Açık" : "☾ Koyu"; };
   lab();
   tb.onclick = () => {
-    const thm = document.getElementById("thm"), before = isDark();
-    if (PAGE === "tefas" && thm) thm.click();
-    if (isDark() === before) root.dataset.theme = before ? "light" : "dark";
-    const t = isDark() ? "dark" : "light"; root.dataset.theme = t;
-    set("alco-theme", t); set("fd-theme", t); set("bv.theme", t); lab();
-    window.dispatchEvent(new Event("resize"));
+    const t = isDark() ? "light" : "dark";
+    window.alcoTema(t); lab();
+    if (SHELL) document.querySelectorAll("#alcoFrames iframe").forEach(f => { try { f.contentWindow.alcoTema && f.contentWindow.alcoTema(t); } catch (e) {} });
   };
+
+  if (SHELL) { // tek sayfa: sekmeler iframe; bir kez açılan sekme bellekte kalır, geçiş anında olur
+    const box = document.getElementById("alcoFrames"), frames = {};
+    const show = k => {
+      if (!TABS.some(t => t[0] === k)) k = TABS[0][0];
+      host.querySelectorAll("nav.at-tabs a").forEach(a => { if (a.dataset.k === k) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
+      for (const [kk, f] of Object.entries(frames)) f.hidden = kk !== k;
+      if (!frames[k]) {
+        const t = TABS.find(x => x[0] === k), f = document.createElement("iframe");
+        f.title = t[1]; f.src = t[3]; box.appendChild(f); frames[k] = f;
+      } else { try { frames[k].contentWindow.dispatchEvent(new Event("resize")); } catch (e) {} }
+      document.title = TABS.find(x => x[0] === k)[1] + " · ALCO";
+    };
+    host.querySelector("nav.at-tabs").addEventListener("click", e => {
+      const a = e.target.closest("a[data-k]"); if (!a || e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
+      e.preventDefault(); if (location.hash !== "#" + a.dataset.k) history.pushState(null, "", "#" + a.dataset.k); show(a.dataset.k);
+    });
+    addEventListener("popstate", () => show(location.hash.slice(1)));
+    show(location.hash.slice(1));
+  }
 
   fetch(ROOT + "durum.json?t=" + Date.now(), { cache: "no-store" }).then(r => r.ok ? r.json() : {}).catch(() => ({})).then(D => {
     D = D || {};

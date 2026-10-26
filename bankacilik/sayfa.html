@@ -253,13 +253,9 @@ td .sm.up{color:var(--up)} td .sm.down{color:var(--down)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 </style>
 <div id="gate">
-  <form id="gateForm" autocomplete="on">
+  <form id="gateForm">
     <h2>Bankacılık Verileri</h2>
-    <p>Devam etmek için site şifresini girin.</p>
-    <input type="text" name="username" value="banka" autocomplete="username" hidden>
-    <input id="pw" type="password" autocomplete="current-password" placeholder="Şifre" required>
-    <div class="row"><label><input id="remember" type="checkbox" checked> Bu cihazda hatırla</label><button type="submit" id="gateBtn">Aç</button></div>
-    <div class="err" id="gateErr"></div>
+    <div class="err" id="gateErr">Veriler yükleniyor…</div><button id="gateBtn" hidden></button>
   </form>
 </div>
 
@@ -382,15 +378,9 @@ async function decrypt(env, password) {
 }
 const FILES = ["bddk_haftalik", "bddk_aylik", "evds", "politika"];
 async function fetchJSON(u) { const r = await fetch(u, { cache: "no-cache" }); if (!r.ok) throw new Error(r.status); return r.json(); }
-async function loadAll(password) {
+async function loadAll() {
   const out = {};
-  await Promise.all(FILES.map(async f => {
-    try { out[f] = await decrypt(await fetchJSON(`data/${f}.enc.json`), password); }
-    catch (e) {
-      if (e && e.name === "OperationError") throw new Error("pw");
-      try { out[f] = await fetchJSON(`data/${f}.json`); } catch { out[f] = null; } // yerel deneme (şifresiz)
-    }
-  }));
+  await Promise.all(FILES.map(async f => { try { out[f] = await fetchJSON(`data/${f}.json`); } catch { out[f] = null; } }));
   return out;
 }
 
@@ -543,8 +533,7 @@ function divBars(items, kind) {
 // =============================================================== üst bilgi
 function renderMeta() {
   const src = [D.w && ["BDDK Haftalık Bülten", D.w.raw.updated, "https://www.bddk.org.tr/BultenHaftalik"], D.m && ["BDDK Aylık Bülten", D.m.raw.updated, "https://www.bddk.org.tr/BultenAylik"], D.e && ["TCMB EVDS", D.e.updated, "https://evds3.tcmb.gov.tr"], D.p && ["TCMB Para Politikası", D.p.updated, "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB+TR/Main+Menu/Temel+Faaliyetler/Para+Politikasi/PPK/"]].filter(Boolean);
-  $("#foot").innerHTML = "Kaynaklar: " + src.map(([n, t, u]) => `<a href="${u}" target="_blank" rel="noopener">${n}</a> (çekim ${t ? new Date(t).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" }) : "—"})`).join(" · ") + "." + (window.__BANKA_GZ ? "" : ` <button class="more" id="logoutBtn" style="padding:0">Çıkış</button>`);
-  if ($("#logoutBtn")) $("#logoutBtn").onclick = () => { store.set("bv.pw", null); try { sessionStorage.removeItem("bv.pw"); } catch {} location.reload(); };
+  $("#foot").innerHTML = "Kaynaklar: " + src.map(([n, t, u]) => `<a href="${u}" target="_blank" rel="noopener">${n}</a> (çekim ${t ? new Date(t).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" }) : "—"})`).join(" · ") + ".";
 }
 
 // =============================================================== BDDK
@@ -1019,26 +1008,16 @@ function start(raw) {
 }
 const th = store.get("bv.theme"); if (th) document.documentElement.dataset.theme = th;
 
-async function unlock(pw, remember) {
-  $("#gateBtn").disabled = true; $("#gateErr").textContent = "Açılıyor…";
+async function unlock() {
   try {
-    const raw = await loadAll(pw);
+    const raw = await loadAll();
     if (!raw.bddk_haftalik && !raw.bddk_aylik && !raw.evds) throw new Error("nodata");
-    if (remember) store.set("bv.pw", pw); else { try { sessionStorage.setItem("bv.pw", pw); } catch {} }
     start(raw);
-  } catch (e) {
-    $("#gateErr").textContent = e.message === "pw" ? "Şifre hatalı." : "Veriler yüklenemedi.";
-    store.set("bv.pw", null);
-  } finally { $("#gateBtn").disabled = false; }
+  } catch (e) { $("#gateErr").textContent = "Veriler yüklenemedi."; }
 }
-$("#gateForm").onsubmit = e => { e.preventDefault(); unlock($("#pw").value, $("#remember").checked); };
 if (window.__BANKA_GZ) {
-  $("#gateErr").textContent = "Veriler açılıyor…";
   gunzip(b64(window.__BANKA_GZ)).then(start).catch(e => { $("#gateErr").textContent = "Önizleme verisi açılamadı: " + e.message; });
-} else {
-  let saved = store.get("bv.pw"); try { saved = saved || sessionStorage.getItem("bv.pw"); } catch {}
-  if (saved) unlock(saved, !!store.get("bv.pw")); else $("#pw").focus();
-}
+} else unlock();
 })();
 </script>
 

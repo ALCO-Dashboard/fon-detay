@@ -60,7 +60,8 @@ jobs:
       - name: Ortak dosyaları ve TEFAS sayfasını kopyala
         run: |
           mkdir -p site/ortak && cp ortak/ust.js site/ortak/
-          cp sayfa.html site/index.html
+          cp sayfa.html site/tefas.html
+          cp ortak/kabuk.html site/index.html
 
       - name: Sayfayı yayınla
         if: always()
