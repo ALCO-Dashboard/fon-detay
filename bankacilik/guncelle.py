@@ -439,9 +439,7 @@ def politika(P, anahtar):
 
 
 # ---------------------------------------------------------------- sayfa
-MENU = ('<div id="alcoTop"></div><script src="../ortak/ust.js" data-page="banka" data-root="../"></script>'
-        # aynı şifre: Fon Detay'da hatırlanan şifre bu sayfada da kullanılır
-        '<script>try{if(!localStorage.getItem("bv.pw")){var p=localStorage.getItem("fd-pw");if(p)localStorage.setItem("bv.pw",p)}}catch(e){}</script>')
+MENU = '<div id="alcoTop"></div><script src="../ortak/ust.js" data-page="banka" data-root="../"></script>'
 
 
 def main():
@@ -449,10 +447,7 @@ def main():
     ap.add_argument("--cek", action="store_true", help="BDDK ve EVDS'den yeni veriyi çek")
     ap.add_argument("--site", default="site")
     a = ap.parse_args()
-    sifre = os.environ.get("SITE_PASSWORD", "")
-    if len(sifre) < 6:
-        log("HATA: SITE_PASSWORD tanımlı değil ya da 6 karakterden kısa.")
-        return 2
+    sifre = os.environ.get("SITE_PASSWORD", "")      # yalnızca eski şifreli dosyaları bir kez açmak için
     cikti = os.path.join(a.site, "bankacilik")
     veri_dizin = os.path.join(cikti, "data")
     os.makedirs(veri_dizin, exist_ok=True)
@@ -461,8 +456,9 @@ def main():
     D = {}
     for f in DOSYALAR:
         yol = os.path.join(veri_dizin, f + ".enc.json")
+        duz = os.path.join(veri_dizin, f + ".json")
         try:
-            D[f] = coz(json.load(open(yol)), sifre)
+            D[f] = json.load(open(duz, encoding="utf-8")) if os.path.exists(duz) else coz(json.load(open(yol)), sifre)
             log(f"Önceki veri: {f}")
         except Exception as e:
             if os.path.exists(yol):
@@ -489,7 +485,9 @@ def main():
                 sorun.append(ad)
 
     for f in DOSYALAR:
-        json.dump(sifrele(D[f], sifre), open(os.path.join(veri_dizin, f + ".enc.json"), "w"))
+        json.dump(D[f], open(os.path.join(veri_dizin, f + ".json"), "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
+        if os.path.exists(os.path.join(veri_dizin, f + ".enc.json")):
+            os.remove(os.path.join(veri_dizin, f + ".enc.json"))
     html = open(os.path.join(KOK, "sayfa.html"), encoding="utf-8").read()
     html = html.replace("/*PARA_POLITIKASI*/", open(os.path.join(KOK, "para_politikasi.js"), encoding="utf-8").read(), 1)
     html = html.replace("<body>", "<body>" + MENU, 1) if "<body>" in html else MENU + html

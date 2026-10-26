@@ -62,7 +62,9 @@ jobs:
         run: python bankacilik/guncelle.py --site site
 
       - name: Ortak dosyaları kopyala
-        run: mkdir -p site/ortak && cp ortak/ust.js site/ortak/
+        run: |
+          mkdir -p site/ortak && cp ortak/ust.js site/ortak/
+          cp ortak/kabuk.html site/index.html
 
       - name: Sayfayı yayınla
         run: |

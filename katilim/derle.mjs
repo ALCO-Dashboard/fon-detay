@@ -4,13 +4,9 @@
 // 2) katilim/excel/ altındaki tüm bülten Excel'lerini tarih sırasıyla üzerine işler
 //    (aynı tarih iki dosyada varsa daha yeni bültenin değeri geçerli olur)
 // 3) Kuru olmayan tarihler için TCMB gösterge döviz alış kurunu çeker
-// 4) Veriyi Fon Detay ile aynı yöntemle şifreler: site/katilim/data.enc + index.html
-//
-// Şifre SITE_PASSWORD ortam değişkeninden okunur.
+// 4) site/katilim/data.json + index.html yazar
 import fs from "node:fs";
 import path from "node:path";
-import zlib from "node:zlib";
-import crypto from "node:crypto";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
@@ -20,8 +16,6 @@ await import(path.join(KOK, "parser.js"));
 const { parse } = globalThis.KBParser;
 const CIKTI = path.join(process.argv[2] || "site", "katilim");
 
-const sifre = process.env.SITE_PASSWORD || "";
-if (sifre.length < 6) { console.error("HATA: SITE_PASSWORD tanımlı değil ya da 6 karakterden kısa."); process.exit(2); }
 
 const S = JSON.parse(fs.readFileSync(path.join(KOK, "onceki.json"), "utf8"));
 S.snaps ||= {}; S.reports ||= {}; S.catalog ||= []; S.fx ||= {};
@@ -88,15 +82,11 @@ for (const d of Object.keys(S.snaps).sort()) {
   else console.log(`Kur: ${d} bulunamadı, bültenden türetilecek`);
 }
 
-// ---- şifrele ve yaz (Fon Detay ile aynı biçim: "FD1" + tuz16 + nonce12 + gzip(JSON) şifreli + etiket)
+// ---- yaz (şifresiz; GitHub Pages aktarımda sıkıştırır)
 const veri = { ...S, updated: new Date().toISOString() };
-const ham = zlib.gzipSync(Buffer.from(JSON.stringify(veri), "utf8"), { level: 6 });
-const tuz = crypto.randomBytes(16), nonce = crypto.randomBytes(12);
-const anahtar = crypto.pbkdf2Sync(sifre, tuz, 200000, 32, "sha256");
-const c = crypto.createCipheriv("aes-256-gcm", anahtar, nonce);
-const sifreli = Buffer.concat([c.update(ham), c.final(), c.getAuthTag()]);
 fs.mkdirSync(CIKTI, { recursive: true });
-fs.writeFileSync(path.join(CIKTI, "data.enc"), Buffer.concat([Buffer.from("FD1"), tuz, nonce, sifreli]));
+fs.writeFileSync(path.join(CIKTI, "data.json"), JSON.stringify(veri));
+fs.rmSync(path.join(CIKTI, "data.enc"), { force: true });
 fs.writeFileSync(path.join(CIKTI, "index.html"), fs.readFileSync(path.join(KOK, "sayfa.html")));
 // üst başlıktaki "güncel" göstergesi için son bülten tarihi
 try {

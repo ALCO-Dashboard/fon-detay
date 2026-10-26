@@ -97,16 +97,7 @@ details.note summary{cursor:pointer;font-weight:600;color:var(--acc);list-style-
 </head>
 <body>
 <div id="alcoTop"></div><script src="ortak/ust.js" data-page="tefas" data-root="./"></script>
-<div id="lock">
-<form id="lf">
-<h1>FON DETAY</h1>
-<p>Bu sayfa şifreyle korunuyor.</p>
-<input type="password" id="pw" placeholder="Şifre" autocomplete="current-password" aria-label="Şifre" required>
-<label><input type="checkbox" id="rem"> Bu cihazda hatırla</label>
-<button id="lb" type="submit">Giriş</button>
-<div id="lerr" role="alert"></div>
-</form>
-</div>
+<div id="lock"><form id="lf"><h1>FON DETAY</h1><p id="lerr" role="status" style="color:var(--mut)">Veriler yükleniyor…</p></form></div>
 <div id="app" hidden>
 <div class="wrap" lang="tr">
 <header><div><h1>FON DETAY — YATIRIM FONLARI ANALİZİ</h1><div class="sub" id="sub"></div></div><button class="b" id="thm" aria-label="Tema değiştir"></button></header>
@@ -331,18 +322,10 @@ useTab('YAT');
 
 }
 (function(){
-const $=id=>document.getElementById(id);let raw=null;
-const load=()=>raw?Promise.resolve(raw):fetch('data.enc?t='+Date.now(),{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('veri');return r.arrayBuffer()}).then(b=>raw=new Uint8Array(b));
-async function open(pw){const b=await load();if(String.fromCharCode(b[0],b[1],b[2])!='FD1')throw new Error('veri');
- const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
- const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:b.slice(3,19),iterations:200000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['decrypt']);
- let plain;try{plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:b.slice(19,31)},key,b.slice(31))}catch(e){throw new Error('sifre')}
- const txt=await new Response(new Blob([plain]).stream().pipeThrough(new DecompressionStream('gzip'))).text();return JSON.parse(txt)}
-async function go(pw,auto){$('lb').disabled=true;$('lerr').textContent='';$('lb').textContent='Açılıyor…';
- try{const D=await open(pw);if($('rem').checked||auto){try{localStorage.setItem('fd-pw',pw)}catch(e){}}$('lock').hidden=true;$('app').hidden=false;startApp(D)}
- catch(e){if(auto){try{localStorage.removeItem('fd-pw')}catch(x){}}$('lerr').textContent=e.message=='sifre'?'Şifre yanlış.':e.message=='veri'?'Veri dosyası okunamadı. Sayfa henüz güncellenmemiş olabilir.':'Sayfa açılamadı: '+e.message;$('lb').disabled=false;$('lb').textContent='Giriş'}}
-$('lf').addEventListener('submit',e=>{e.preventDefault();go($('pw').value,false)});
-let s=null;try{s=localStorage.getItem('fd-pw')}catch(e){}if(s){$('rem').checked=true;go(s,true)}
+const $=id=>document.getElementById(id);
+fetch('data.json?t='+Date.now(),{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('veri');return r.json()})
+ .then(D=>{$('lock').hidden=true;$('app').hidden=false;startApp(D)})
+ .catch(e=>{$('lerr').style.color='var(--neg)';$('lerr').textContent=e.message=='veri'?'Veri dosyası okunamadı. Sayfa henüz güncellenmemiş olabilir.':'Sayfa açılamadı: '+e.message});
 })();
 </script>
 </body>
