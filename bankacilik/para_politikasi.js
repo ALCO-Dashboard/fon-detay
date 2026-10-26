@@ -1,7 +1,7 @@
 // =============================================================== para politikası (TCMB › Para Politikası)
 // Veri: data/politika.enc.json (bankacilik/guncelle.py › politika): EVDS bie_apifon + bie_swaptektarf + USD/TRY,
 // TÜFE endeksi (TP.FG.J0), TCMB 1 hafta repo tarihçesi ve PPK takvimi.
-const PPS = { sel: null, range: "2Y", ppkYear: null, ppkChart: false };
+const PPS = { sel: null, range: "2Y", drange: "1Y", ppkYear: null, ppkChart: false };
 const PP_SW = ["sw_usd_piy", "sw_usd_bist", "sw_usd_al", "sw_usd_sat", "sw_usd_mik", "sw_xau_piy", "sw_xau_al", "sw_xau_sat", "sw_top_al", "sw_top_sat"];
 function ppModel() {
   const P = D.p; if (!P || !P.daily || !P.daily.dates || !P.daily.dates.length) return null;
@@ -177,7 +177,7 @@ function ppkSection(m) {
   const Y = PPS.ppkYear && years.includes(PPS.ppkYear) ? PPS.ppkYear : (years.includes(nowY) ? nowY : years[years.length - 1]);
   const ys = L.filter(x => +x.yil === Y), yp = ys.filter(x => x.yayin && ok(x.faiz)), yb = yp.length ? (m.F.filter(f => f.tarih <= yp[0].tarih).pop() || {}).oran : null, ye = yp.length ? yp[yp.length - 1].faiz : null;
   const ybp = ok(yb) && ok(ye) ? Math.round((ye - yb) * 100) : null, today = new Date().toISOString().slice(0, 10);
-  const cal = `<article class="card ppk ppcal" id="ppCal"><div class="ppcalh"><h3>${Y} PPK Takvimi</h3><div class="chips" id="ppYears">${years.map(y => `<button class="chip" aria-pressed="${y === Y}" data-y="${y}">${y}</button>`).join("")}</div></div>
+  const cal = `<article class="card ppk ppcal" id="ppCal"><div class="ppcalh"><h3>PPK Takvimi</h3><select class="ppsel" id="ppYear" aria-label="Yıl">${years.map(y => `<option value="${y}"${y === Y ? " selected" : ""}>${y}</option>`).join("")}</select></div>
     <p class="ppsum">${yp.length ? `${yp.length} karar · yıl içinde ${ybp === 0 ? "değişiklik yok" : `${ybp < 0 ? "−" : "+"}${Math.abs(ybp)}bp`} (%${nf(2).format(yb)} → %${nf(2).format(ye)})` : "Bu yıl için henüz karar yok."}</p>
     <ol class="ppcl" title="Politika faizi grafiğini aç/kapat">${ys.map(x => { const st = x.today ? "today" : x.tarih < today ? "past" : "future";
       return `<li class="${st}"><span class="dot"></span><span class="dd">${dLabel(x.tarih)}${x.ara ? " *" : ""}${x.today ? ' <span class="tag">BUGÜN</span>' : ""}</span><span class="kk">${x.karar ? `${x.karar} → %${nf(2).format(x.faiz)}` : st === "future" ? "—" : ""}</span></li>`; }).join("")}</ol>
@@ -193,6 +193,17 @@ function ppkDrawChart(m) {
   pts.push([e0, cur, toTime(e0)]);
   lineChart(el, { series: [{ name: "Politika faizi (%)", color: PAL()[0], data: pts }], height: 280, yFmt: v => nf(2).format(v) });
 }
+function ppStep(pts) { const o = []; for (let k = 0; k < pts.length; k++) { if (k && ok(pts[k][1]) && ok(o[o.length - 1]?.[1]) && pts[k][1] !== o[o.length - 1][1]) o.push([pts[k][0], o[o.length - 1][1], pts[k][2] - 1]); o.push(pts[k]); } return o; }
+function ppDefaultCharts(m) {
+  const ids = ppClipIdx(m, PPS.drange), M = m.M, pal = PAL(), col = c => pal[(c - 1) % pal.length];
+  const a = $("#ppAof"), n = $("#ppNet"); if (!a || !n) return;
+  lineChart(a, { series: [
+    { name: "TCMB AOF (%)", color: col(4), data: ppStep(ids.map(i => [m.dt[i], ok(M.aof[i]) ? M.aof[i] : null, toTime(m.dt[i])])) },
+    { name: "Politika faizi (%)", color: col(1), dash: true, data: ppStep(ids.map(i => [m.dt[i], M.pol[i], toTime(m.dt[i])])) }], height: 240, yFmt: v => nf(1).format(v) });
+  ppStackChart(n, { dates: ids.map(i => m.dt[i]), height: 240,
+    stacks: [["fon", "Para piyasaları ile fonlama", 1], ["swap", "Swap fonlaması", 2], ["st_neg", "Sterilizasyon", 8]].map(([k, nm, c]) => ({ name: nm, color: col(c), vals: ids.map(i => ok(M[k][i]) ? M[k][i] / 1e3 : null) })),
+    line: { name: "Swap dahil net fonlama", color: "var(--ink)", vals: ids.map(i => ok(M.nets[i]) ? M.nets[i] / 1e3 : null) } });
+}
 function ppRender() {
   const pane = $("#ppPane"); pane.classList.remove("hidden");
   $("#tBanks").closest(".bar").classList.add("hidden"); $(".tlayout").classList.add("hidden");
@@ -203,16 +214,19 @@ function ppRender() {
     + (sel ? `<article class="card ppchart"><div class="ppch"><h3>${esc((PP_PARTS[sel] || { title: "TCMB AOF ve Politika Faizi" }).title)} ${sel === "aof" ? "(%) — Günlük" : "(₺ mr) — Günlük"}</h3><div class="chips" id="ppRange"></div></div>
       <div class="pptiles">${ppPartTiles(m, sel)}</div><div id="ppChart"></div>
       <p class="ppnote">${dLabel(m.dt[m.last])} itibarıyla. ${sel === "swap" ? "Swap stokları (milyon USD) × TCMB USD/TRY alış kuru; alım yönlü − satım yönlü. Pozitif: TCMB swapla TL verdi, negatif: TL çekti." : sel === "aof" ? "Politika faizi: TCMB 1 hafta repo ihale faizi." : "Kaynak: TCMB EVDS, Açık Piyasa İşlemleri ile Fonlama ve Sterilizasyon."}</p></article>`
-      : `<p class="ppnote">Grafiği ve kırılımı görmek için bir kutuya tıklayın.</p>`)
+      : `<p class="ppnote">Kırılımı görmek için bir kutuya tıklayın.</p>`)
+    + `<div class="ppdef"><div class="ppdefh"><span class="lbl">Dönem</span><div class="chips" id="ppDRange"></div></div><div class="ppkgrid2"><article class="card"><h3>TCMB AOF (%) — Günlük</h3><div id="ppAof"></div><p class="ppnote">Ağırlıklı ortalama fonlama maliyeti · kesikli: politika faizi</p></article>
+      <article class="card"><h3>Net Fonlama (₺ mr) — Günlük</h3><div id="ppNet"></div><p class="ppnote">Para piyasaları ile fonlama + swap fonlaması − sterilizasyon</p></article></div></div>`
     + ppkSection(m);
   if (sel) { rangeChips($("#ppRange"), PPS.range, k => { PPS.range = k; ppDrawChart(m); }); ppDrawChart(m); }
+  rangeChips($("#ppDRange"), PPS.drange, k => { PPS.drange = k; ppDefaultCharts(m); }); ppDefaultCharts(m);
   ppkDrawChart(m);
 }
 function ppHide() { const pane = $("#ppPane"); if (pane) pane.classList.add("hidden"); $("#tBanks").closest(".bar").classList.remove("hidden"); $(".tlayout").classList.remove("hidden"); }
 function bindPp() {
+  $("#ppPane").addEventListener("change", e => { if (e.target.id === "ppYear") { PPS.ppkYear = +e.target.value; ppRender(); } });
   $("#ppPane").addEventListener("click", e => {
     const b = e.target.closest("[data-pp]"); if (b) { PPS.sel = PPS.sel === b.dataset.pp ? null : b.dataset.pp; ppRender(); return; }
-    const y = e.target.closest("#ppYears [data-y]"); if (y) { PPS.ppkYear = +y.dataset.y; ppRender(); return; }
     if (e.target.closest("#ppkToggle") || e.target.closest(".ppcl")) { PPS.ppkChart = !PPS.ppkChart; ppRender(); if (PPS.ppkChart) $("#ppkChart")?.scrollIntoView({ behavior: "smooth", block: "nearest" }); }
   });
 }
