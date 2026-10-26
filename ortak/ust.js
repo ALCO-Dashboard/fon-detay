@@ -55,7 +55,7 @@
 .alco-top .at-pop div:last-child{border-bottom:0}
 .alco-top .at-pop i{width:8px;height:8px;border-radius:50%;background:var(--at-ok)} .alco-top .at-pop i.w{background:var(--at-warn)} .alco-top .at-pop i.n{background:var(--at-line)}
 .alco-top .at-pop span:last-child{font-family:"JetBrains Mono",ui-monospace,monospace;color:var(--at-mut);font-size:11.5px}
-.alco-top nav.at-tabs{display:flex;gap:4px;overflow-x:auto}
+.alco-top nav.at-tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}.alco-top nav.at-tabs::-webkit-scrollbar{display:none}
 .alco-top nav.at-tabs a{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--at-mut);font-size:14px;font-weight:600;padding:10px 16px 11px;border-bottom:3px solid transparent;white-space:nowrap}
 .alco-top nav.at-tabs a:hover{color:var(--at-ink);background:none}
 .alco-top nav.at-tabs a[aria-current="page"]{color:var(--at-red);border-bottom-color:var(--at-red)}
