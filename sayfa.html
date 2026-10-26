@@ -238,11 +238,14 @@ function ovSets(a,b,ink){if(!OV.length)return[];if(!EVD){evLoad();return[]}
  const n=b-a+1,out=[];
  for(const k of OV){const o=OVD[k],rows=EVD[k];if(!rows)continue;const data=new Array(n).fill(null);let j=a;
   for(const [d,v] of rows){if(d<DATES[a]||d>DATES[b])continue;while(j<b&&DATES[j+1]<=d)j++;const dd=(new Date(d)-new Date(DATES[j]))/864e5;if(DATES[j]<=d&&dd<=4)data[j-a]=v*o.k}
-  if(o.bar)out.push({type:'bar',label:o.n,ov:o.u,yAxisID:o.ax,data,backgroundColor:data.map(x=>x>=0?'rgba(31,138,76,.45)':'rgba(200,16,46,.45)'),barThickness:4,order:5});
+  if(o.bar)out.push({type:'bar',label:o.n,ov:o.u,yAxisID:o.ax,data,backgroundColor:data.map(x=>x>=0?'rgba(31,138,76,.4)':'rgba(200,16,46,.4)'),barThickness:4,order:5});
   else out.push({type:'line',label:o.n,ov:o.u,yAxisID:o.ax,data,spanGaps:true,borderColor:k=='tl'?ink:'#c8102e',backgroundColor:k=='tl'?ink:'#c8102e',borderDash:[6,4],borderWidth:2,pointRadius:0,pointHoverRadius:4,tension:.15,fill:false})}
  return out}
-function ovAxes(sets){const ax={};const f=(id,u,pos)=>{ax[id]={position:'right',grid:{display:false},border:{display:false},ticks:{maxTicksLimit:6,callback:v=>big(v)+' '+u}}};
- sets.forEach(d=>{if(!ax[d.yAxisID])f(d.yAxisID,d.ov)});return ax}
+function ovAxes(sets,ink){const ax={},cf=v=>{const a=Math.abs(v),[d,u]=a>=1e12?[1e12,' Tr']:a>=1e9?[1e9,' Mlr']:a>=1e6?[1e6,' Mn']:[1,''];return nf(v/d,(v/d)%1?1:0)+u};
+ for(const d of sets){if(ax[d.yAxisID])continue;const col=d.type=='bar'?'#1f8a4c':d.borderColor,o={position:'right',grid:{display:false},border:{display:false},ticks:{maxTicksLimit:5,color:col,font:{size:10.5},callback:v=>cf(v)+' '+d.ov}};
+  if(d.type=='bar'){const m=Math.max(1,...d.data.filter(x=>x!=null).map(Math.abs));o.min=-m*1.15;o.max=m*3.3;o.ticks.callback=v=>Math.abs(v)>m*1.2?'':cf(v)+' '+d.ov}
+  ax[d.yAxisID]=o}
+ return ax}
 const reveal={id:'reveal',beforeDatasetsDraw(c){const p=c.$rv;if(p==null||p>=1)return;const a=c.chartArea,x=c.ctx;x.save();x.beginPath();x.rect(a.left-4,a.top-6,(a.width+8)*p,a.height+12);x.clip();c.$cl=1},afterDatasetsDraw(c){if(c.$cl){c.ctx.restore();c.$cl=0}}};
 function mkChart(el,cfg){const lin=cfg.type!='doughnut';if(lin)cfg.plugins=[reveal];const c=new Chart(el,cfg);if(lin&&!RM){c.$rv=0;c.draw();const t0=performance.now(),st=n=>{if(!c.ctx||!c.canvas)return;const p=Math.min(1,(n-t0)/1200);c.$rv=1-Math.pow(1-p,2);try{c.draw()}catch(e){return}if(p<1)requestAnimationFrame(st)};requestAnimationFrame(st)}return c}
 let CH=[],PEND=[];const mkc=(el,cfg)=>{PEND.push([el,cfg])};
