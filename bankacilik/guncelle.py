@@ -237,14 +237,57 @@ def bddk_aylik(D):
     D["updated"] = simdi()
 
 
+# Başlangıç verisinde olmayan, sonradan eklenen EVDS grupları: ilk çalışmada geçmişiyle birlikte çekilir.
+# (bölüm adı, listede hangi grubun ardına ekleneceği, grup tanımı)
+EK_GRUPLAR = [
+    ("Para ve Banka İstatistikleri (Haftalık)", "bie_hpbitablo4", {
+        "code": "bie_hpbitablo5", "name": "Yabancı Para Mevduatta Haftalık Değişim ve Parite Etkisi (Yurt İçi Şubeler)",
+        "freq": "HAFTALIK(CUMA)", "unit": "milyon ABD doları", "akim": True, "series": [
+            {"code": "TP.HPBITABLO5.1", "name": "1.Parite Etkisinden Arındırılmış Değişim (Yurt İçi Yerleşikler)"},
+            {"code": "TP.HPBITABLO5.2", "name": "1.1.Gerçek Kişiler"},
+            {"code": "TP.HPBITABLO5.3", "name": "1.1.1.ABD Doları Cinsi Mevduat"},
+            {"code": "TP.HPBITABLO5.4", "name": "1.1.2.Euro Cinsi Mevduat"},
+            {"code": "TP.HPBITABLO5.5", "name": "1.1.3.Diğer Para Cinsi Mevduat"},
+            {"code": "TP.HPBITABLO5.6", "name": "1.1.4.Kıymetli Maden Depo Hesapları"},
+            {"code": "TP.HPBITABLO5.7", "name": "1.2.Tüzel Kişiler"},
+            {"code": "TP.HPBITABLO5.8", "name": "1.2.1.ABD Doları Cinsi Mevduat"},
+            {"code": "TP.HPBITABLO5.9", "name": "1.2.2.Euro Cinsi Mevduat"},
+            {"code": "TP.HPBITABLO5.10", "name": "1.2.3.Diğer Para Cinsi Mevduat"},
+            {"code": "TP.HPBITABLO5.11", "name": "1.2.4.Kıymetli Maden Depo Hesapları"},
+            {"code": "TP.HPBITABLO5.12", "name": "2.Parite Etkisi (Yurt İçi Yerleşikler)"},
+            {"code": "TP.HPBITABLO5.13", "name": "2.1.Gerçek Kişiler"},
+            {"code": "TP.HPBITABLO5.14", "name": "2.1.1.ABD Doları Cinsi Mevduat"},
+            {"code": "TP.HPBITABLO5.15", "name": "2.1.2.Euro Cinsi Mevduat"},
+            {"code": "TP.HPBITABLO5.16", "name": "2.1.3.Diğer Para Cinsi Mevduat"},
+            {"code": "TP.HPBITABLO5.17", "name": "2.1.4.Kıymetli Maden Depo Hesapları"},
+            {"code": "TP.HPBITABLO5.18", "name": "2.2.Tüzel Kişiler"},
+            {"code": "TP.HPBITABLO5.19", "name": "2.2.1.ABD Doları Cinsi Mevduat"},
+            {"code": "TP.HPBITABLO5.20", "name": "2.2.2.Euro Cinsi Mevduat"},
+            {"code": "TP.HPBITABLO5.21", "name": "2.2.3.Diğer Para Cinsi Mevduat"},
+            {"code": "TP.HPBITABLO5.22", "name": "2.2.4.Kıymetli Maden Depo Hesapları"}]}),
+]
+
+
 def evds(D, anahtar):
     s = requests.Session()
     s.headers.update({"key": anahtar, "User-Agent": UA})
     bugun = dt.date.today()
     hatali = []
+    for bolum, sonra, tanim in EK_GRUPLAR:
+        if tanim["code"] in D["groups"]:
+            continue
+        D["groups"][tanim["code"]] = {**tanim, "updated": "", "dates": [], "vals": {}}
+        for b in D.get("tree", []):
+            if b.get("section") == bolum and tanim["code"] not in b["groups"]:
+                i = b["groups"].index(sonra) + 1 if sonra in b["groups"] else len(b["groups"])
+                b["groups"].insert(i, tanim["code"])
+        log(f"   EVDS {tanim['code']}: yeni grup eklendi, geçmişiyle çekilecek")
     for kod, g in D["groups"].items():
         aylik = g["freq"].upper().startswith("AYLIK")
         bas = bugun - dt.timedelta(days=400 if aylik else 180)
+        if not g["dates"]:                                             # yeni grup: aynı sıklıktaki grupların başlangıcından
+            ilk = [x["dates"][0] for x in D["groups"].values() if x["dates"] and x["freq"] == g["freq"]]
+            bas = dt.date(2022, 12, 1) if not ilk else (dt.date(int(min(ilk)[:4]), int(min(ilk)[5:7]), 1))
         seriler = [x["code"] for x in g["series"]]
         try:
             yeni = {}

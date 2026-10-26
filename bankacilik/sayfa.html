@@ -434,6 +434,7 @@ function prepEvds(raw) {
   const kindOf = g => { const u = trLower(g.unit || ""); if (/bin tl/.test(u)) return "tl"; if (/abd/.test(u)) return "usd"; if (/ağırlıklı|yüzde/.test(u)) return "pct"; if (/işlem/.test(u)) return "count"; return "idx"; };
   for (const g of Object.values(raw.groups)) {
     g.kind = kindOf(g); g.scale = /bin tl/.test(trLower(g.unit || "")) ? 1 / 1000 : 1; g.weekly = /HAFTA/.test(g.freq || "");
+    g.flow = !!g.akim; // haftalık değişim (akım) serisi: dönem karşılaştırması yerine dönem toplamı
     g.idx = Object.fromEntries((g.series || []).map(s => [s.code, s]));
   }
   return raw;
@@ -870,6 +871,7 @@ const TOPICS = {
       { id: "h_kredi", name: "Seçilmiş kredi büyüklükleri", g: { sektor: "bie_hpbitablo6" } },
       { id: "h_tlmev", name: "Türk lirası mevduatı", g: { sektor: "bie_hpbitablo3" } },
       { id: "h_ypmev", name: "Yabancı para mevduatı", g: { sektor: "bie_hpbitablo4" } },
+      { id: "h_ypparite", name: "Yabancı para mevduatı (kur etkisinden arındırılmış)", g: { sektor: "bie_hpbitablo5" } },
       { id: "h_paraarzi", name: "Para arzı", g: { genel: "bie_hpbitablo1" } } ] },
   ],
 };
@@ -884,7 +886,7 @@ function tSections() {
 const tHas = (it, bank) => !!(it.g[bank] || it.g.genel);
 function tBanks() { const ks = new Set(tSections().flatMap(s => s.items.flatMap(it => Object.keys(it.g)))); return GROUPS.filter(g => ks.has(g.key)); }
 function defaultSel(g) {
-  const pref = { bie_kt100h: ["TP.KTF17", "TP.KTFTUK", "TP.KTF12"], bie_kt200h: ["TP.KBK.TRY.1", "TP.KBK.TRY.KBTFTUK", "TP.KBK.TRY.18"], bie_mt100h: ["TP.TRY.MT06", "TP.TRY.MT02", "TP.TRY.MT05"], bie_mt200h: ["TP.KBH.TRY.30", "TP.KBH.TRY.6", "TP.KBH.TRY.2128"] }[g.code];
+  const pref = { bie_kt100h: ["TP.KTF17", "TP.KTFTUK", "TP.KTF12"], bie_kt200h: ["TP.KBK.TRY.1", "TP.KBK.TRY.KBTFTUK", "TP.KBK.TRY.18"], bie_mt100h: ["TP.TRY.MT06", "TP.TRY.MT02", "TP.TRY.MT05"], bie_mt200h: ["TP.KBH.TRY.30", "TP.KBH.TRY.6", "TP.KBH.TRY.2128"], bie_hpbitablo5: ["TP.HPBITABLO5.1", "TP.HPBITABLO5.12"] }[g.code];
   const have = (pref || []).filter(c => g.vals[c]);
   if (have.length) return have;
   const tot = g.series.filter(s => /TOPLAM/i.test(s.name) && g.vals[s.code]).slice(0, 3).map(s => s.code);
@@ -921,17 +923,19 @@ function tPanel(it) {
   for (const s of g.series) {
     const arr = g.vals[s.code]; if (!arr) continue;
     const a = ok(arr[A]) ? arr[A] * sc : null, b = ok(arr[B]) ? arr[B] * sc : null;
-    const [dc, pc] = deltaCells(a, b, kind);
+    let dc, pc;
+    if (g.flow) { let t = 0, any = false; for (let k = A + 1; k <= B; k++) if (ok(arr[k])) { t += arr[k] * sc; any = true; } const v = any ? t : null; dc = `<td class="${cls(v, 1e-9)}">${fmtVal(v, kind, true)}</td>`; pc = ""; }
+    else [dc, pc] = deltaCells(a, b, kind);
     const on = S.tSel[key].includes(s.code);
     rows += `<tr class="row l${evdsLvl(s.name)}${on ? " sel" : ""}" data-s="${esc(s.code)}"><td class="chk"><input type="checkbox" ${on ? "checked" : ""} aria-label="Grafiğe ekle"></td><td class="nm">${esc(s.name)}</td><td>${fmtFull(a, kind)}</td><td>${fmtFull(b, kind)}</td>${dc}${pc}</tr>`;
   }
   return `<article class="card" data-g="${key}">
-    <div class="cardhead"><div><h3>${esc(g.name)}</h3><div class="kv"><span>Son veri <b>${dShort(g.dates[n - 1])}</b></span>${fb ? `<span>${esc(fb)}</span>` : ""}</div></div>
+    <div class="cardhead"><div><h3>${esc(g.name)}</h3><div class="kv"><span>Son veri <b>${dShort(g.dates[n - 1])}</b></span>${g.flow ? "<span>Haftalık değişim · milyon ABD doları</span>" : ""}${fb ? `<span>${esc(fb)}</span>` : ""}</div></div>
       <div class="chips">${RANGES.map(([k]) => `<button class="chip" data-rk="${k}" aria-pressed="${S.tRange === k}">${k}</button>`).join("")}</div></div>
     <div data-tsub="${key}" class="sub" style="margin-bottom:2px"></div><div data-tchart="${key}"></div>
     <div class="bar" style="margin-top:14px"><span class="period"><select data-ta="${key}" aria-label="Başlangıç">${opt(A)}</select><span class="arrow">→</span><select data-tb="${key}" aria-label="Bitiş">${opt(B)}</select></span><div class="chips">${quick}</div>
       <span class="sep"></span><button class="chip" data-clear="${key}">Seçimi temizle</button></div>
-    <div class="tbl-wrap"><table><thead><tr><th class="chk"></th><th>Seri</th><th>${dShort(g.dates[A])}</th><th>${dShort(g.dates[B])}</th><th>Değişim</th><th>%</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="tbl-wrap"><table><thead><tr><th class="chk"></th><th>Seri</th><th>${dShort(g.dates[A])}</th><th>${dShort(g.dates[B])}</th>${g.flow ? `<th title="${dShort(g.dates[A])} sonrasından ${dShort(g.dates[B])} dahil haftalık değişimlerin toplamı">Dönem toplamı</th>` : "<th>Değişim</th><th>%</th>"}</tr></thead><tbody>${rows}</tbody></table></div>
   </article>`;
 }
 function drawTChart(code) {
