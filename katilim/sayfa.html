@@ -11,8 +11,8 @@
 <style>
 /* Layout: üst şerit (bülten + filtreler) → göstergeler → bilanço (aktif | pasif + özkaynak) → seçili kalem detayı → kurlar → ham tablo + günlük */
 :root{
-  --bg:#f3f5f4; --panel:#ffffff; --ink:#0f1f1c; --ink-2:#465753; --muted:#77867f; --line:#dbe3e0; --line-2:#eef2f0;
-  --accent:#0d6656; --accent-ink:#ffffff; --accent-soft:#e0eee9;
+  --bg:#f5f3f3; --panel:#ffffff; --ink:#1c1416; --ink-2:#57494b; --muted:#85777a; --line:#e6dfe0; --line-2:#f2eded;
+  --accent:#c8102e; --accent-ink:#ffffff; --accent-soft:#fdecee;
   --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a;
   --warn:#9a5b00; --warn-soft:#fbefd9; --ok:#1f7a3f; --pos:#2e9a55; --neg:#d14343;
   --font-ui:"Albert Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -20,12 +20,12 @@
   --r:10px;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#0e1413; --panel:#151d1b; --ink:#e8eeec; --ink-2:#b1bfbb; --muted:#83928d; --line:#29342f; --line-2:#1d2724;
-  --accent:#4fb8a3; --accent-ink:#06231d; --accent-soft:#1a2e29;
+  --bg:#141011; --panel:#1c1617; --ink:#f1e9ea; --ink-2:#c4b5b7; --muted:#958688; --line:#352a2c; --line-2:#251d1f;
+  --accent:#f0525f; --accent-ink:#1c0a0c; --accent-soft:#3a171b;
   --s1:#3987e5; --s2:#d95926; --s3:#199e70; --warn:#e6b25c; --warn-soft:#2e2414; --ok:#5cc58a; --pos:#45b26b; --neg:#e25c5c; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#0e1413; --panel:#151d1b; --ink:#e8eeec; --ink-2:#b1bfbb; --muted:#83928d; --line:#29342f; --line-2:#1d2724;
-  --accent:#4fb8a3; --accent-ink:#06231d; --accent-soft:#1a2e29;
+  --bg:#141011; --panel:#1c1617; --ink:#f1e9ea; --ink-2:#c4b5b7; --muted:#958688; --line:#352a2c; --line-2:#251d1f;
+  --accent:#f0525f; --accent-ink:#1c0a0c; --accent-soft:#3a171b;
   --s1:#3987e5; --s2:#d95926; --s3:#199e70; --warn:#e6b25c; --warn-soft:#2e2414; --ok:#5cc58a; --pos:#45b26b; --neg:#e25c5c; color-scheme:dark}
 body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);font-size:14px;line-height:1.45}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--panel)}
@@ -376,9 +376,9 @@ img{max-width:100%}
 <script>try{const t=localStorage.getItem("fd-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 </head>
 <body>
+<div id="alcoTop"></div><script src="../ortak/ust.js" data-page="katilim" data-root="../"></script>
 <div id="lock"><form id="lf"><h1>KATILIM BANKALARI BÜLTENİ</h1><p>Bu sayfa şifreyle korunuyor. Fon Detay ile aynı şifre.</p><input type="password" id="pw" placeholder="Şifre" autocomplete="current-password" aria-label="Şifre" required><label><input type="checkbox" id="rem"> Bu cihazda hatırla</label><button id="lb" type="submit">Giriş</button><div id="lerr" role="alert"></div></form></div>
 <div id="app" hidden>
-<nav class="sitenav" aria-label="Site"><div class="wrap"><span class="brand2">ALCO</span><a href="../">Fon Detay</a><a href="./" aria-current="page">Katılım Bülteni</a><a href="../bankacilik/">Bankacılık Verileri</a></div></nav>
 <header class="top">
   <div class="wrap hd">
     <a class="logo" href="#" id="home" aria-label="Katılım Bankaları Bülteni, tüm bilanço">

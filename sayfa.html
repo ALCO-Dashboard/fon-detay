@@ -8,10 +8,10 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap">
 <style>
 /* Düzen: başlık → tarih + görünüm → filtreler → özet kutuları → (TL: trend, dağılım, günlük değişim, haftalık akım | Kendi para cinsi: birim şeridi + birim kartları) → sütun filtreli tablo */
-:root{--bg:#f3f5f9;--card:#fff;--fg:#141a2a;--mut:#667089;--line:#dde2ec;--acc:#2158d9;--accbg:#e8effd;--pos:#0b8a5f;--neg:#c8322b;--warn:#b8650a;--hd:#eef1f6;--own:#b45309;
+:root{--bg:#f3f5f9;--card:#fff;--fg:#141a2a;--mut:#667089;--line:#dde2ec;--acc:#c8102e;--accbg:#fdecee;--pos:#0b8a5f;--neg:#c8322b;--warn:#b8650a;--hd:#eef1f6;--own:#b45309;
 --sans:"DM Sans",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,Menlo,monospace}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f131c;--card:#181d29;--fg:#e7ebf4;--mut:#93a0b8;--line:#2a3142;--acc:#6f9bff;--accbg:#1c2947;--pos:#3fcf9a;--neg:#ff7b72;--warn:#f0a84a;--hd:#1e2432;--own:#e08a3c;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#0f131c;--card:#181d29;--fg:#e7ebf4;--mut:#93a0b8;--line:#2a3142;--acc:#6f9bff;--accbg:#1c2947;--pos:#3fcf9a;--neg:#ff7b72;--warn:#f0a84a;--hd:#1e2432;--own:#e08a3c;color-scheme:dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f131c;--card:#181d29;--fg:#e7ebf4;--mut:#93a0b8;--line:#2a3142;--acc:#f0525f;--accbg:#3a171b;--pos:#3fcf9a;--neg:#ff7b72;--warn:#f0a84a;--hd:#1e2432;--own:#e08a3c;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f131c;--card:#181d29;--fg:#e7ebf4;--mut:#93a0b8;--line:#2a3142;--acc:#f0525f;--accbg:#3a171b;--pos:#3fcf9a;--neg:#ff7b72;--warn:#f0a84a;--hd:#1e2432;--own:#e08a3c;color-scheme:dark}
 body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:14px;padding-inline:16px;padding-block:20px 40px}
 .wrap{max-width:1500px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
 h1{font-family:Archivo,'DM Sans',system-ui,sans-serif;font-size:26px;margin:0;font-weight:800;letter-spacing:.03em;line-height:1.15;text-wrap:balance}
@@ -96,6 +96,7 @@ details.note summary{cursor:pointer;font-weight:600;color:var(--acc);list-style-
 </style>
 </head>
 <body>
+<div id="alcoTop"></div><script src="ortak/ust.js" data-page="tefas" data-root="./"></script>
 <div id="lock">
 <form id="lf">
 <h1>FON DETAY</h1>
@@ -108,7 +109,6 @@ details.note summary{cursor:pointer;font-weight:600;color:var(--acc);list-style-
 </div>
 <div id="app" hidden>
 <div class="wrap" lang="tr">
-<nav class="sitenav" aria-label="Site"><span>ALCO</span><a href="./" aria-current="page">Fon Detay</a><a href="katilim/">Katılım Bülteni</a><a href="bankacilik/">Bankacılık Verileri</a></nav>
 <header><div><h1>FON DETAY — YATIRIM FONLARI ANALİZİ</h1><div class="sub" id="sub"></div></div><button class="b" id="thm" aria-label="Tema değiştir"></button></header>
 <nav class="tabs" id="tabs" aria-label="Fon türü"><button data-t="YAT" aria-pressed="true">Menkul Kıymet Yatırım Fonları</button><button data-t="EMK" aria-pressed="false">Emeklilik Yatırım Fonları</button><button data-t="BYF" aria-pressed="false">Borsa Yatırım Fonu</button></nav>
 <div class="box row">

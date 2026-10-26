@@ -11,6 +11,8 @@ on:
     paths:
       - "katilim/**"
       - "bankacilik/**"
+      - "ortak/**"
+      - "sayfa.html"
   workflow_dispatch:
 
 permissions:
@@ -54,6 +56,11 @@ jobs:
           SITE_PASSWORD: ${{ secrets.SITE_PASSWORD }}
           EVDS_API_KEY: ${{ secrets.EVDS_API_KEY }}
         run: python bankacilik/guncelle.py --cek --site site
+
+      - name: Ortak dosyaları ve TEFAS sayfasını kopyala
+        run: |
+          mkdir -p site/ortak && cp ortak/ust.js site/ortak/
+          cp sayfa.html site/index.html
 
       - name: Sayfayı yayınla
         if: always()
