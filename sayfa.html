@@ -24,6 +24,10 @@ header{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:flex-end;justify-co
 .sitenav{display:flex;flex-wrap:wrap;align-items:center;gap:4px;background:var(--fg);border-radius:10px;padding:5px 8px}.sitenav span{color:var(--bg);font-weight:700;letter-spacing:.08em;font-size:12px;margin:0 12px 0 4px;opacity:.85}.sitenav a{color:var(--bg);opacity:.75;text-decoration:none;font-size:13px;font-weight:600;padding:5px 10px;border-radius:6px}.sitenav a:hover{opacity:1}.sitenav a[aria-current=page]{opacity:1;background:color-mix(in srgb,var(--bg) 18%,transparent)}
 h2{font-size:14px;margin:0 0 10px;font-weight:600}
 .sub{color:var(--mut);font-size:13px;margin-top:4px}.sub b{color:var(--fg)}
+.trh{display:flex;align-items:flex-start;gap:10px}.trh h2{flex:1;min-width:0}
+.ov{position:relative;flex:none}.ov .b{font-size:12.5px;padding:5px 10px;white-space:nowrap}.ov .b.on{border-color:var(--acc);color:var(--acc)}
+.ovp{position:absolute;right:0;top:calc(100% + 6px);z-index:15;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.15);padding:10px 12px;min-width:300px;font-size:13px}
+.ovp label{display:flex;gap:8px;align-items:center;padding:5px 0;cursor:pointer}.ovh{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin-bottom:4px}.ovs{font-size:11.5px;color:var(--mut);margin-top:4px}
 .box{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;min-width:0}
 .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .lbl{font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--mut);text-transform:uppercase}
@@ -124,7 +128,7 @@ details.note summary{cursor:pointer;font-weight:600;color:var(--acc);list-style-
 <div class="kpis" id="kpis"></div>
 <div id="v-tl" style="display:contents">
 <div class="g2">
-<div class="box fill"><h2 id="tr-t"></h2><div class="ch"><canvas id="c-tr"></canvas></div></div>
+<div class="box fill"><div class="trh"><h2 id="tr-t"></h2><div class="ov" id="ov"><button class="b" id="ov-b" aria-expanded="false" aria-controls="ov-p">＋ Grafik ekle</button><div class="ovp" id="ov-p" hidden><div class="ovh">TCMB haftalık (EVDS) · sağ eksen</div><label><input type="checkbox" value="tl"> Türk lirası mevduatı</label><label><input type="checkbox" value="yp"> Yabancı para mevduatı</label><label><input type="checkbox" value="ypk"> YP mevduat değişimi (kur etkisinden arındırılmış)</label><div class="ovs" id="ov-s"></div></div></div></div><div class="ch"><canvas id="c-tr"></canvas></div></div>
 <div class="box"><h2 id="dn-t"></h2><div class="dn"><canvas id="c-dn"></canvas></div><div class="cl" id="cl"></div></div>
 </div>
 <div class="box"><h2 id="pd-t"></h2><div class="pdl" id="pdl"></div></div>
@@ -222,6 +226,23 @@ function table(){const fs=COLS.filter(c=>colF[c[1]]&&colF[c[1]].trim()).map(c=>[
 const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
 function countUp(el,x,f){if(RM||x==null||!isFinite(x))return;const t0=performance.now(),D=800;el.textContent=f(0);const st=n=>{const p=Math.min(1,(n-t0)/D),e=1-Math.pow(1-p,3);el.textContent=f(x*e);if(p<1)requestAnimationFrame(st);else el.textContent=f(x)};requestAnimationFrame(st)}
 const prog=()=>false,barAn=()=>false;
+/* TCMB haftalık EVDS katmanları (trend grafiğinin sağ ekseni) */
+const OVD={tl:{n:'TL mevduat (TCMB)',g:'bie_hpbitablo3',c:'TP.HPBITABLO3.1',k:1e3,u:'₺',ax:'yTL'},yp:{n:'YP mevduat (TCMB)',g:'bie_hpbitablo4',c:'TP.HPBITABLO4.1',k:1e6,u:'$',ax:'yUSD'},ypk:{n:'YP mevduat değişimi, kur etkisinden arındırılmış (TCMB)',g:'bie_hpbitablo5',c:'TP.HPBITABLO5.1',k:1e6,u:'$',ax:'yFL',bar:1}};
+let OV=[];try{OV=JSON.parse(localStorage.getItem('fd-ov')||'[]').filter(k=>OVD[k])}catch(e){}
+let EVD=null,EVL=0;
+function evLoad(){if(EVD||EVL)return;EVL=1;const st=document.getElementById('ov-s');if(st)st.textContent='TCMB verisi yükleniyor…';
+ fetch('bankacilik/data/evds.json',{cache:'no-cache'}).then(r=>{if(!r.ok)throw 0;return r.json()}).then(j=>{EVD={};for(const k in OVD){const g=j.groups[OVD[k].g];if(!g)continue;const v=g.vals[OVD[k].c]||[];EVD[k]=g.dates.map((d,i)=>[d,v[i]]).filter(x=>x[1]!=null)}
+  const l=EVD.tl||EVD.yp;if(st)st.textContent=l&&l.length?'Son TCMB verisi: '+tr(l[l.length-1][0]):'';try{draw()}catch(e){}})
+ .catch(()=>{EVL=0;if(st)st.textContent='TCMB verisi alınamadı.'})}
+function ovSets(a,b,ink){if(!OV.length)return[];if(!EVD){evLoad();return[]}
+ const n=b-a+1,out=[];
+ for(const k of OV){const o=OVD[k],rows=EVD[k];if(!rows)continue;const data=new Array(n).fill(null);let j=a;
+  for(const [d,v] of rows){if(d<DATES[a]||d>DATES[b])continue;while(j<b&&DATES[j+1]<=d)j++;const dd=(new Date(d)-new Date(DATES[j]))/864e5;if(DATES[j]<=d&&dd<=4)data[j-a]=v*o.k}
+  if(o.bar)out.push({type:'bar',label:o.n,ov:o.u,yAxisID:o.ax,data,backgroundColor:data.map(x=>x>=0?'rgba(31,138,76,.45)':'rgba(200,16,46,.45)'),barThickness:4,order:5});
+  else out.push({type:'line',label:o.n,ov:o.u,yAxisID:o.ax,data,spanGaps:true,borderColor:k=='tl'?ink:'#c8102e',backgroundColor:k=='tl'?ink:'#c8102e',borderDash:[6,4],borderWidth:2,pointRadius:0,pointHoverRadius:4,tension:.15,fill:false})}
+ return out}
+function ovAxes(sets){const ax={};const f=(id,u,pos)=>{ax[id]={position:'right',grid:{display:false},border:{display:false},ticks:{maxTicksLimit:6,callback:v=>big(v)+' '+u}}};
+ sets.forEach(d=>{if(!ax[d.yAxisID])f(d.yAxisID,d.ov)});return ax}
 const reveal={id:'reveal',beforeDatasetsDraw(c){const p=c.$rv;if(p==null||p>=1)return;const a=c.chartArea,x=c.ctx;x.save();x.beginPath();x.rect(a.left-4,a.top-6,(a.width+8)*p,a.height+12);x.clip();c.$cl=1},afterDatasetsDraw(c){if(c.$cl){c.ctx.restore();c.$cl=0}}};
 function mkChart(el,cfg){const lin=cfg.type!='doughnut';if(lin)cfg.plugins=[reveal];const c=new Chart(el,cfg);if(lin&&!RM){c.$rv=0;c.draw();const t0=performance.now(),st=n=>{if(!c.ctx||!c.canvas)return;const p=Math.min(1,(n-t0)/1200);c.$rv=1-Math.pow(1-p,2);try{c.draw()}catch(e){return}if(p<1)requestAnimationFrame(st)};requestAnimationFrame(st)}return c}
 let CH=[],PEND=[];const mkc=(el,cfg)=>{PEND.push([el,cfg])};
@@ -248,8 +269,9 @@ function draw(){const R=rows(),all=R.filter(f=>V[f][i1]);RCUR=R;CH.forEach(c=>c.
   const tix=new Int32Array(N).fill(-1);wk.forEach((w,j)=>w.ts.forEach(t=>tix[t]=j));
   R.forEach(f=>{const c=META[f][2],s=ser[c],v=V[f],x=FL[f],w=wf[c];for(let i=a;i<=b;i++){if(v[i])s[i-a]+=v[i]*1000;if(i>a&&x[i])w[tix[i]]+=x[i]}});
   const used=cats.filter(c=>ser[c].some(x=>x>0)).sort((x,y)=>ser[y][b-a]-ser[x][b-a]);
-  mkc($('c-tr'),{type:'line',data:{labels:lab,datasets:used.map(c=>({label:c,data:Array.from(ser[c]),borderColor:CC[c],backgroundColor:CC[c],fill:false,borderWidth:2,pointRadius:0,pointHoverRadius:4,tension:.15}))},
-   options:{maintainAspectRatio:false,animation:prog(b-a+1),interaction:{mode:'index',intersect:false},scales:{x:xs,y:ys(v=>big(v),0)},plugins:{legend:{position:'bottom',labels:{boxWidth:10,boxHeight:10,usePointStyle:true}},tooltip:{callbacks:{title:t=>tr(DATES[a+t[0].dataIndex]),label:t=>` ${t.dataset.label}: ${big(t.parsed.y)} ₺`,footer:t=>'Toplam: '+big(t.reduce((s,x)=>s+x.parsed.y,0))+' ₺'}}}}});
+  const ovs=ovSets(a,b,getComputedStyle(document.body).color);
+  mkc($('c-tr'),{type:'line',data:{labels:lab,datasets:used.map(c=>({label:c,data:Array.from(ser[c]),borderColor:CC[c],backgroundColor:CC[c],fill:false,borderWidth:2,pointRadius:0,pointHoverRadius:4,tension:.15})).concat(ovs)},
+   options:{maintainAspectRatio:false,animation:prog(b-a+1),interaction:{mode:'index',intersect:false},scales:{x:xs,y:ys(v=>big(v),0),...ovAxes(ovs)},plugins:{legend:{position:'bottom',labels:{boxWidth:10,boxHeight:10,usePointStyle:true}},tooltip:{filter:t=>t.parsed.y!=null,callbacks:{title:t=>tr(DATES[a+t[0].dataIndex]),label:t=>t.dataset.ov?` ${t.dataset.label}: ${t.dataset.type=='bar'?sgn(big(t.parsed.y),t.parsed.y):big(t.parsed.y)} ${t.dataset.ov}`:` ${t.dataset.label}: ${big(t.parsed.y)} ₺`,footer:t=>'Fon toplamı: '+big(t.filter(x=>!x.dataset.ov).reduce((s,x)=>s+x.parsed.y,0))+' ₺'}}}}});
   const cnt={};all.forEach(f=>cnt[META[f][2]]=(cnt[META[f][2]]||0)+1);const du=used.filter(c=>ser[c][b-a]>0),dv=du.map(c=>ser[c][b-a]),dt=dv.reduce((s,x)=>s+x,0);
   mkc($('c-dn'),{type:'doughnut',data:{labels:du,datasets:[{data:dv,backgroundColor:du.map(c=>CC[c]),borderColor:card,borderWidth:2}]},options:{maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false},tooltip:{callbacks:{label:t=>` ${big(t.parsed)} ₺ · %${nf(t.parsed/dt*100,1)}`}}}}});
   $('cl').innerHTML=du.map((c,i)=>`<div><i class="dot" style="--c:${CC[c]}"></i><span>${c}</span><span class="c">${cnt[c]||0} fon</span><span class="a">${big(dv[i])} ₺</span></div>`).join('');
@@ -296,6 +318,11 @@ $('clr').onclick=()=>{colF={};page=0;head();table()};
 ['f-cat','f-kat','f-oz','f-cur','f-pys','f-tf'].forEach(i=>$(i).addEventListener('change',()=>{page=0;draw()}));
 $('pv').onclick=()=>{page--;table()};$('nx').onclick=()=>{page++;table()};
 const press=(a,b,on)=>{$(a).setAttribute('aria-pressed',on);$(b).setAttribute('aria-pressed',!on)};
+{const ob=$('ov-b'),op=$('ov-p'),lab=()=>{ob.textContent=OV.length?`＋ Grafik ekle (${OV.length})`:'＋ Grafik ekle';ob.classList.toggle('on',OV.length>0)};
+ op.querySelectorAll('input').forEach(i=>i.checked=OV.includes(i.value));lab();if(OV.length)evLoad();
+ ob.onclick=e=>{e.stopPropagation();op.hidden=!op.hidden;ob.setAttribute('aria-expanded',String(!op.hidden));if(!op.hidden&&!EVD)evLoad()};
+ op.onclick=e=>e.stopPropagation();document.addEventListener('click',()=>{if(!op.hidden){op.hidden=true;ob.setAttribute('aria-expanded','false')}});
+ op.addEventListener('change',()=>{OV=[...op.querySelectorAll('input:checked')].map(i=>i.value);try{localStorage.setItem('fd-ov',JSON.stringify(OV))}catch(e){}lab();draw()})}
 $('m-own').onclick=()=>{own=true;press('m-own','m-tl',true);draw()};$('m-tl').onclick=()=>{own=false;press('m-own','m-tl',false);draw()};
 const QK=[['1 Ay',1],['3 Ay',3],['6 Ay',6],['9 Ay',9],['1 Yıl',12],['Yılbaşı',0]];let qsel=null;
 const qdate=n=>{if(!n)return (DATES[i1].slice(0,4)-1)+'-12-31';const d=new Date(DATES[i1]+'T00:00:00Z');d.setUTCMonth(d.getUTCMonth()-n);return d.toISOString().slice(0,10)};
