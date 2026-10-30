@@ -1,0 +1,27 @@
+{
+ "katilim": {
+  "son_veri": "2026-10-15",
+  "guncelleme": "2026-10-30T14:50:22.445Z"
+ },
+ "bddk_haftalik": {
+  "son_veri": "2026-10-23",
+  "guncelleme": "2026-10-30T14:50:23Z"
+ },
+ "bddk_aylik": {
+  "son_veri": "2026-09",
+  "guncelleme": "2026-10-30T14:50:23Z"
+ },
+ "evds": {
+  "son_veri": "2026-10-16",
+  "guncelleme": "2026-10-30T14:50:23Z"
+ },
+ "politika": {
+  "son_veri": "2026-10-28",
+  "guncelleme": "2026-10-30T14:50:23Z"
+ },
+ "ppk_sonraki": "2026-12-10",
+ "tefas": {
+  "son_veri": "2026-10-30",
+  "guncelleme": "2026-10-30T14:50:16Z"
+ }
+}
